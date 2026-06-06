@@ -344,18 +344,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          set -euxo pipefail
+          
+          find release-assets -type f -print
+          
           if gh release view "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            --repo "$GITHUB_REPOSITORY"; then
             gh release upload "$GITHUB_REF_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --clobber \
-              release-assets/*
+              $(find release-assets -type f)
           else
             gh release create "$GITHUB_REF_NAME" \
               --repo "$GITHUB_REPOSITORY" \
               --title "$GITHUB_REF_NAME" \
               --generate-notes \
               --latest \
-              release-assets/*
+              $(find release-assets -type f)
           fi
-

@@ -15,7 +15,7 @@ type Config struct {
 
 func defaultConfig(home string) Config {
 	return Config{
-		DownloadDir: filepath.Join(home, "Downloads", "YT-MP3"),
+		DownloadDir: filepath.Join(home, "Downloads", "YouTube-MP3"),
 		Quality:     "192k",
 		Language:    "pt-BR",
 	}

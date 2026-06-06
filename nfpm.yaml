@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://nfpm.goreleaser.com/schema.json
-name: yt-mp3-go
+name: youtube-mp3-downloader
 arch: amd64
 platform: linux
 version: ${VERSION}
@@ -16,22 +16,26 @@ depends:
   - libgtk-3-0t64
   - libwebkit2gtk-4.1-0
 contents:
-  - src: ./build/bin/yt-mp3-go
-    dst: /opt/yt-mp3-go/yt-mp3-go
+  - src: ./build/bin/youtube-mp3-downloader
+    dst: /opt/youtube-mp3-downloader/youtube-mp3-downloader
     file_info:
       mode: 0755
   - src: ./build/linux/package/ffmpeg
-    dst: /opt/yt-mp3-go/ffmpeg
+    dst: /opt/youtube-mp3-downloader/ffmpeg
     file_info:
       mode: 0755
-  - src: /opt/yt-mp3-go/yt-mp3-go
-    dst: /usr/bin/yt-mp3-go
+  - src: /opt/youtube-mp3-downloader/youtube-mp3-downloader
+    dst: /usr/bin/youtube-mp3-downloader
     type: symlink
-  - src: ./build/linux/yt-mp3-go.desktop
-    dst: /usr/share/applications/yt-mp3-go.desktop
+  - src: ./build/linux/youtube-mp3-downloader.desktop
+    dst: /usr/share/applications/youtube-mp3-downloader.desktop
     file_info:
       mode: 0644
   - src: ./build/appicon.png
-    dst: /usr/share/icons/hicolor/1024x1024/apps/yt-mp3-go.png
+    dst: /usr/share/icons/hicolor/1024x1024/apps/youtube-mp3-downloader.png
+    file_info:
+      mode: 0644
+  - src: ./build/appicon.png
+    dst: /usr/share/pixmaps/youtube-mp3-downloader.png
     file_info:
       mode: 0644

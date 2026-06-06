@@ -108,7 +108,7 @@ func ffmpegCacheDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("não foi possível localizar a pasta do usuário: %w", err)
 	}
-	return filepath.Join(home, ".yt-mp3-downloader-bin"), nil
+	return filepath.Join(home, ".youtube-mp3-downloader-bin"), nil
 }
 
 func ffmpegArtifactFor(goos, goarch string) (ffmpegArtifact, error) {

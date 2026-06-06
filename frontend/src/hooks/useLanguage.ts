@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Language, translations, Translations } from '../i18n';
 import { api } from '../services/api';
 
-const STORAGE_KEY = 'yt-mp3-language';
+const STORAGE_KEY = 'youtube-mp3-downloader-language';
 
 function getInitialLanguage(): Language {
   const stored = localStorage.getItem(STORAGE_KEY);

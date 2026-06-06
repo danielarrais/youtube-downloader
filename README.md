@@ -1,4 +1,4 @@
-# yt-mp3-go
+# YouTube MP3 Downloader
 
 Aplicativo desktop em Go, Wails e React para baixar vídeos e playlists do
 YouTube como MP3. A fila, a pasta de saída, a qualidade e o idioma permanecem
@@ -15,7 +15,7 @@ Requisitos:
 Na primeira conversão, o aplicativo procura o FFmpeg empacotado ou instalado no
 sistema. Caso não encontre, baixa e valida automaticamente uma build para
 Linux ou Windows (`amd64` e `arm64`), armazenada em
-`~/.yt-mp3-downloader-bin/`. Portanto, o primeiro uso requer acesso à internet,
+`~/.youtube-mp3-downloader-bin/`. Portanto, o primeiro uso requer acesso à internet,
 mas o binário não precisa ser versionado no repositório.
 
 No Linux com WebKitGTK 4.1:

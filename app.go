@@ -41,11 +41,11 @@ func NewApp() *App {
 	}
 	return &App{
 		config:     defaultConfig(home),
-		configPath: filepath.Join(home, ".yt-mp3-downloader-config.json"),
+		configPath: filepath.Join(home, ".youtube-mp3-downloader-config.json"),
 		items:      make(map[string]*DownloadItem),
 		queueOrder: make([]string, 0),
-		cacheDir:   filepath.Join(home, ".yt-mp3-downloader-cache"),
-		queuePath:  filepath.Join(configDir, "yt-mp3-go", "queue.json"),
+		cacheDir:   filepath.Join(home, ".youtube-mp3-downloader-cache"),
+		queuePath:  filepath.Join(configDir, "youtube-mp3-downloader", "queue.json"),
 		wakeWorker: make(chan struct{}, 1),
 	}
 }

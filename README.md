@@ -8,8 +8,8 @@ salvos entre reinicializações.
 
 Requisitos:
 
-- Go 1.26
-- Node.js 20+
+- Go 1.26.4+
+- Node.js 20.19+
 - Dependências nativas do Wails para o sistema operacional
 
 Na primeira conversão, o aplicativo procura o FFmpeg empacotado ou instalado no
@@ -21,7 +21,7 @@ mas o binário não precisa ser versionado no repositório.
 No Linux com WebKitGTK 4.1:
 
 ```bash
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.11.0 dev -tags webkit2_41
+go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 dev -tags webkit2_41
 ```
 
 O frontend também fica disponível em `http://localhost:5173`.
@@ -40,7 +40,7 @@ go vet ./...
 Build nativo:
 
 ```bash
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.11.0 build
+go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build
 ```
 
 ### Instalador Windows no Linux

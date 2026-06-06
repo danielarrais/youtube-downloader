@@ -11,6 +11,7 @@ permissions:
 env:
   GO_VERSION: "1.26.4"
   NODE_VERSION: "20.19.4"
+  NPM_VERSION: "10.8.2"
   WAILS_VERSION: "v2.12.0"
   NFPM_VERSION: "v2.46.3"
   FFMPEG_BASE_URL: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest"
@@ -43,6 +44,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up npm
+        run: npm install --global npm@${NPM_VERSION}
 
       - name: Install Linux build dependencies
         run: |
@@ -84,6 +88,9 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up npm
+        run: npm install --global npm@${NPM_VERSION}
 
       - name: Install build tools
         run: |
@@ -193,6 +200,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up npm
+        shell: pwsh
+        run: npm install --global npm@$env:NPM_VERSION
 
       - name: Install build tools
         shell: pwsh

@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-900 text-gray-100;
+}
+
+.app-select {
+  color-scheme: dark;
+}
+
+.app-select option {
+  background-color: #374151;
+  color: #ffffff;
+}

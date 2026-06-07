@@ -78,9 +78,10 @@ URL shown by Wails after `To develop in the browser`, not the direct Vite port.
 
 ## Web with Docker
 
-The image contains the backend, compiled frontend, FFmpeg, and TLS
-certificates. The pipeline will publish `linux/amd64` and `linux/arm64` images
-to:
+The image contains the backend, compiled frontend, a checksum-verified
+[BtbN FFmpeg build](https://github.com/BtbN/FFmpeg-Builds), and TLS
+certificates on a minimal Distroless runtime. The pipeline will publish
+`linux/amd64` and `linux/arm64` images to:
 
 ```text
 docker.io/danielarrais/youtube-mp3-downloader

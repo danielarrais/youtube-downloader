@@ -6,6 +6,7 @@ import (
 	"context"
 	"embed"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -19,6 +20,13 @@ import (
 var webAssets embed.FS
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "healthcheck" {
+		if err := checkWebHealth(envOrDefault("HEALTHCHECK_URL", "http://127.0.0.1:8080/healthz")); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	address := envOrDefault("WEB_ADDR", ":8080")
 	dataDir := envOrDefault("DATA_DIR", "/data")
 	downloadDir := envOrDefault("DOWNLOAD_DIR", "/downloads")
@@ -53,6 +61,19 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("web server shutdown: %v", err)
 	}
+}
+
+func checkWebHealth(url string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+	response, err := client.Get(url)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthcheck returned HTTP %d", response.StatusCode)
+	}
+	return nil
 }
 
 func envOrDefault(name, fallback string) string {

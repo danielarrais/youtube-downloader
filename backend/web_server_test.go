@@ -42,6 +42,28 @@ func TestWebHealthAndDownloads(t *testing.T) {
 	}
 }
 
+func TestCheckWebHealth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	if err := checkWebHealth(server.URL); err != nil {
+		t.Fatalf("checkWebHealth() error = %v", err)
+	}
+}
+
+func TestCheckWebHealthRejectsFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	if err := checkWebHealth(server.URL); err == nil {
+		t.Fatal("checkWebHealth() expected an error")
+	}
+}
+
 func TestWebRejectsInvalidJSON(t *testing.T) {
 	app := newWebTestApp(t)
 	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)

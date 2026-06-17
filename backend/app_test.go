@@ -45,7 +45,7 @@ func TestConvertAndPublishRemovesPartialFileAfterFailure(t *testing.T) {
 	t.Cleanup(func() {
 		convertAudioToMP3 = originalConverter
 	})
-	convertAudioToMP3 = func(_ context.Context, _, outputPath, _ string) error {
+	convertAudioToMP3 = func(_ context.Context, _, outputPath, _ string, _ *MusicMetadata, _ string) error {
 		if err := os.WriteFile(outputPath, []byte("partial"), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -53,7 +53,7 @@ func TestConvertAndPublishRemovesPartialFileAfterFailure(t *testing.T) {
 	}
 
 	outputPath := filepath.Join(t.TempDir(), "song.mp3")
-	err := convertAndPublish(context.Background(), "input.tmp", outputPath, "192k")
+	err := convertAndPublish(context.Background(), "input.tmp", outputPath, "192k", nil, "")
 	if err == nil {
 		t.Fatal("convertAndPublish() returned nil error")
 	}
@@ -70,12 +70,12 @@ func TestConvertAndPublishPublishesSuccessfulConversion(t *testing.T) {
 	t.Cleanup(func() {
 		convertAudioToMP3 = originalConverter
 	})
-	convertAudioToMP3 = func(_ context.Context, _, outputPath, _ string) error {
+	convertAudioToMP3 = func(_ context.Context, _, outputPath, _ string, _ *MusicMetadata, _ string) error {
 		return os.WriteFile(outputPath, []byte("mp3"), 0644)
 	}
 
 	outputPath := filepath.Join(t.TempDir(), "song.mp3")
-	if err := convertAndPublish(context.Background(), "input.tmp", outputPath, "192k"); err != nil {
+	if err := convertAndPublish(context.Background(), "input.tmp", outputPath, "192k", nil, ""); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(outputPath)

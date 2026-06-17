@@ -35,10 +35,37 @@ func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
 	a.persistQueue()
 	a.emitItemUpdate(item.ID)
 
+	musicMeta := session.ExtractMusicMetadata()
+	var coverPath string
+	if musicMeta != nil && musicMeta.Song != "" {
+		a.mu.Lock()
+		if !a.isActiveItemLocked(item.ID) {
+			a.mu.Unlock()
+			return
+		}
+		item.ThumbnailURL = musicMeta.CoverURL
+		a.mu.Unlock()
+		a.persistQueue()
+		a.emitItemUpdate(item.ID)
+		if musicMeta.CoverURL != "" {
+			coverPath = filepath.Join(a.cacheDir, "cover-"+item.ID+".jpg")
+			if err := DownloadCoverArt(ctx, musicMeta.CoverURL, coverPath); err != nil {
+				coverPath = ""
+			}
+		}
+	}
+
 	a.mu.Lock()
 	downloadDir := a.config.DownloadDir
 	a.mu.Unlock()
 	outputPath := filepath.Join(downloadDir, SanitizeFilename(video.Title)+".mp3")
+	if musicMeta != nil && musicMeta.Song != "" {
+		filename := musicMeta.Song
+		if musicMeta.Artist != "" {
+			filename = musicMeta.Artist + " - " + musicMeta.Song
+		}
+		outputPath = filepath.Join(downloadDir, SanitizeFilename(filename)+".mp3")
+	}
 	outputPath = a.resolveOutputPath(item, video.ID, outputPath)
 
 	if fileInfo, err := os.Stat(outputPath); err == nil {
@@ -61,15 +88,24 @@ func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
 		a.emitItemUpdate(item.ID)
 		return
 	} else if !os.IsNotExist(err) {
+		if coverPath != "" {
+			os.Remove(coverPath)
+		}
 		a.updateError(item.ID, FormatOperationError("finalize", err, a.currentLanguage()))
 		return
 	}
 
 	if !a.setActiveItemStatus(item.ID, StatusDownloading) {
+		if coverPath != "" {
+			os.Remove(coverPath)
+		}
 		return
 	}
 	tempPath := filepath.Join(a.cacheDir, item.ID+".tmp")
 	defer os.Remove(tempPath)
+	if coverPath != "" {
+		defer os.Remove(coverPath)
+	}
 
 	lastProgressEvent := time.Time{}
 	_, err = session.DownloadAudio(ctx, video, tempPath, func(percent float64, downloaded, total int64) {
@@ -98,7 +134,7 @@ func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
 	if !a.setActiveItemStatus(item.ID, StatusConverting) {
 		return
 	}
-	if err := convertAndPublish(ctx, tempPath, outputPath, item.Quality); err != nil {
+	if err := convertAndPublish(ctx, tempPath, outputPath, item.Quality, musicMeta, coverPath); err != nil {
 		if ctx.Err() != nil {
 			a.cleanupInterruptedDownload(item.ID, "")
 			return
@@ -135,10 +171,10 @@ func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
 	a.emitStats()
 }
 
-func convertAndPublish(ctx context.Context, inputPath, outputPath, quality string) error {
+func convertAndPublish(ctx context.Context, inputPath, outputPath, quality string, metadata *MusicMetadata, coverPath string) error {
 	partPath := outputPath + ".part"
 	defer os.Remove(partPath)
-	if err := convertAudioToMP3(ctx, inputPath, partPath, quality); err != nil {
+	if err := convertAudioToMP3(ctx, inputPath, partPath, quality, metadata, coverPath); err != nil {
 		return err
 	}
 	if err := publishConvertedFile(partPath, outputPath); err != nil {

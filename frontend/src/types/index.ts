@@ -26,6 +26,7 @@ export interface DownloadItem {
   file_path?: string;
   file_size?: number;
   error?: string;
+  thumbnail_url?: string;
   created_at: string;
   started_at?: string;
   completed_at?: string;

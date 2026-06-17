@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/kkdai/youtube/v2"
@@ -156,10 +158,97 @@ func TestFormatOperationErrorUsesLanguage(t *testing.T) {
 }
 
 func TestFFmpegMP3ArgsDeclaresFormatForPartFile(t *testing.T) {
-	args := ffmpegMP3Args("input.webm", "song.mp3.part", "192k")
-	want := []string{"-y", "-i", "input.webm", "-b:a", "192k", "-f", "mp3", "song.mp3.part"}
+	args := ffmpegMP3Args("input.webm", "song.mp3.part", "192k", nil, "")
+	want := []string{"-y", "-i", "input.webm", "-c:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "2", "-joint_stereo", "1", "-map_metadata", "0", "-vn", "-id3v2_version", "3", "-f", "mp3", "song.mp3.part"}
 
 	if fmt.Sprint(args) != fmt.Sprint(want) {
 		t.Fatalf("ffmpegMP3Args() = %v, want %v", args, want)
+	}
+}
+
+func TestFFmpegMP3ArgsWithMetadata(t *testing.T) {
+	args := ffmpegMP3Args("input.webm", "song.mp3", "192k", &MusicMetadata{
+		Song:   "Test Song",
+		Artist: "Test Artist",
+		Album:  "Test Album",
+	}, "")
+	want := []string{"-y", "-i", "input.webm", "-c:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "2", "-joint_stereo", "1", "-metadata", "title=Test Song", "-metadata", "artist=Test Artist", "-metadata", "album=Test Album", "-map_metadata", "0", "-vn", "-id3v2_version", "3", "-f", "mp3", "song.mp3"}
+
+	if fmt.Sprint(args) != fmt.Sprint(want) {
+		t.Fatalf("ffmpegMP3Args() = %v, want %v", args, want)
+	}
+}
+
+func TestFFmpegMP3ArgsWithCover(t *testing.T) {
+	args := ffmpegMP3Args("input.webm", "song.mp3", "192k", &MusicMetadata{
+		Song: "Test Song",
+	}, "cover.jpg")
+	want := []string{"-y", "-i", "input.webm", "-i", "cover.jpg", "-c:a", "libmp3lame", "-b:a", "192k", "-ar", "44100", "-ac", "2", "-joint_stereo", "1", "-metadata", "title=Test Song", "-map_metadata", "0", "-map", "0:a:0", "-map", "1:v:0", "-c:v", "copy", "-disposition:v", "attached_pic", "-id3v2_version", "3", "-f", "mp3", "song.mp3"}
+
+	if fmt.Sprint(args) != fmt.Sprint(want) {
+		t.Fatalf("ffmpegMP3Args() = %v, want %v", args, want)
+	}
+}
+
+func TestFetchVideoDescription(t *testing.T) {
+	url := os.Getenv("YOUTUBE_VIDEO_TEST_URL")
+	if url == "" {
+		url = "https://www.youtube.com/watch?v=0p1Sa6WxbfE"
+	}
+
+	session := NewYouTubeSession()
+	video, err := session.GetVideo(context.Background(), url)
+	if err != nil {
+		t.Fatalf("GetVideo error: %v", err)
+	}
+
+	t.Logf("ID=%s Title=%q Author=%s Duration=%s", video.ID, video.Title, video.Author, video.Duration)
+
+	if video.Description == "" {
+		t.Log("Description is empty")
+	} else {
+		t.Logf("Description:\n%s", video.Description)
+	}
+}
+
+func TestFetchVideoPlayerResponseRaw(t *testing.T) {
+	url := os.Getenv("YOUTUBE_VIDEO_TEST_URL")
+	if url == "" {
+		url = "https://www.youtube.com/watch?v=0p1Sa6WxbfE"
+	}
+
+	videoID, err := youtube.ExtractVideoID(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, err := ExtractMusicMetadata(context.Background(), videoID)
+	if err != nil {
+		if strings.Contains(err.Error(), "429") {
+			t.Skipf("YouTube rate limited this test: %v", err)
+		}
+		t.Fatalf("ExtractMusicMetadata error: %v", err)
+	}
+	if meta == nil {
+		html, fetchErr := fetchWatchPage(context.Background(), videoID)
+		if fetchErr != nil {
+			if strings.Contains(fetchErr.Error(), "429") {
+				t.Skipf("YouTube rate limited this test: %v", fetchErr)
+			}
+			t.Fatalf("fetchWatchPage error: %v", fetchErr)
+		}
+		t.Fatalf("ExtractMusicMetadata returned nil (page size: %d bytes)", len(html))
+	}
+
+	t.Logf("Song:   %s", meta.Song)
+	t.Logf("Artist: %s", meta.Artist)
+	t.Logf("Album:  %s", meta.Album)
+	t.Logf("Cover:  %s", meta.CoverURL)
+
+	if meta.Song == "" {
+		t.Error("Song is empty")
+	}
+	if meta.Artist == "" {
+		t.Error("Artist is empty")
 	}
 }

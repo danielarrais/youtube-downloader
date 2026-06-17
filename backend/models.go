@@ -22,18 +22,19 @@ type DownloadProgress struct {
 }
 
 type DownloadItem struct {
-	ID          string           `json:"id"`
-	URL         string           `json:"url"`
-	Title       string           `json:"title"`
-	Quality     string           `json:"quality"`
-	Status      DownloadStatus   `json:"status"`
-	Progress    DownloadProgress `json:"progress"`
-	Error       string           `json:"error,omitempty"`
-	FilePath    string           `json:"file_path,omitempty"`
-	FileSize    int64            `json:"file_size,omitempty"`
-	CreatedAt   string           `json:"created_at"`
-	StartedAt   string           `json:"started_at,omitempty"`
-	CompletedAt string           `json:"completed_at,omitempty"`
+	ID           string           `json:"id"`
+	URL          string           `json:"url"`
+	Title        string           `json:"title"`
+	Quality      string           `json:"quality"`
+	Status       DownloadStatus   `json:"status"`
+	Progress     DownloadProgress `json:"progress"`
+	Error        string           `json:"error,omitempty"`
+	FilePath     string           `json:"file_path,omitempty"`
+	FileSize     int64            `json:"file_size,omitempty"`
+	ThumbnailURL string           `json:"thumbnail_url,omitempty"`
+	CreatedAt    string           `json:"created_at"`
+	StartedAt    string           `json:"started_at,omitempty"`
+	CompletedAt  string           `json:"completed_at,omitempty"`
 }
 
 type QueueStats struct {

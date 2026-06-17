@@ -23,10 +23,208 @@ import (
 
 var invalidFilenameCharacters = regexp.MustCompile(`[\\/*?:"<>|]`)
 
+type MusicMetadata struct {
+	Song     string
+	Artist   string
+	Album    string
+	CoverURL string
+}
+
+var (
+	ytInitialDataPattern   = regexp.MustCompile(`var ytInitialData\s*=\s*(\{.+?\});`)
+	ytInitialPlayerPattern = regexp.MustCompile(`var ytInitialPlayerResponse\s*=\s*(\{.+?\});`)
+)
+
+var watchPageClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
+func fetchWatchPage(ctx context.Context, videoID string) ([]byte, error) {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			delay := time.Duration(1<<uint(attempt)) * time.Second
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://www.youtube.com/watch?v="+videoID, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+		req.Header.Set("Origin", "https://www.youtube.com")
+		req.Header.Set("Sec-Fetch-Mode", "navigate")
+		req.AddCookie(&http.Cookie{
+			Name:  "CONSENT",
+			Value: "YES+cb.20210328-17-p0.en+FX+111",
+		})
+
+		resp, err := watchPageClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			return body, readErr
+		}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			lastErr = fmt.Errorf("watch page returned HTTP %d", resp.StatusCode)
+			continue
+		}
+		return nil, fmt.Errorf("watch page returned HTTP %d", resp.StatusCode)
+	}
+	return nil, lastErr
+}
+
+func ExtractMusicMetadata(ctx context.Context, videoID string) (*MusicMetadata, error) {
+	html, err := fetchWatchPage(ctx, videoID)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseMusicMetadataFromHTML(html)
+}
+
+func parseMusicMetadataFromHTML(html []byte) (*MusicMetadata, error) {
+	match := ytInitialDataPattern.FindSubmatch(html)
+	if len(match) < 2 {
+		return nil, nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(match[1], &data); err != nil {
+		return nil, err
+	}
+
+	panels, ok := data["engagementPanels"].([]interface{})
+	if !ok {
+		return nil, nil
+	}
+
+	for _, p := range panels {
+		panel, ok := p.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		section, ok := panel["engagementPanelSectionListRenderer"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		content, ok := section["content"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		desc, ok := content["structuredDescriptionContentRenderer"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		items, ok := desc["items"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, item := range items {
+			itemMap, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			cards, ok := itemMap["horizontalCardListRenderer"].(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if meta := parseMusicCards(cards); meta != nil {
+				return meta, nil
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func parseMusicCards(cards map[string]interface{}) *MusicMetadata {
+	cardList, _ := cards["cards"].([]interface{})
+	if len(cardList) == 0 {
+		return nil
+	}
+
+	card, ok := cardList[0].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	vm, ok := card["videoAttributeViewModel"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	meta := &MusicMetadata{}
+
+	if v, ok := vm["title"].(string); ok {
+		meta.Song = v
+	}
+	if v, ok := vm["subtitle"].(string); ok {
+		meta.Artist = v
+	}
+	if sec, ok := vm["secondarySubtitle"].(map[string]interface{}); ok {
+		if v, ok := sec["content"].(string); ok {
+			meta.Album = v
+		}
+	}
+
+	if img, ok := vm["image"].(map[string]interface{}); ok {
+		sources, _ := img["sources"].([]interface{})
+		if len(sources) > 0 {
+			if src, ok := sources[0].(map[string]interface{}); ok {
+				if url, ok := src["url"].(string); ok {
+					meta.CoverURL = url
+				}
+			}
+		}
+	}
+
+	if meta.Song == "" && meta.Artist == "" {
+		return nil
+	}
+	return meta
+}
+
+func DownloadCoverArt(ctx context.Context, url, destPath string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := watchPageClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("cover art download returned HTTP %d", resp.StatusCode)
+	}
+
+	file, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	return err
+}
+
 type androidVRTransport struct {
 	base           http.RoundTripper
 	mu             sync.RWMutex
 	playerResponse []byte
+	watchPageHTML  []byte
 }
 
 type retryTransport struct {
@@ -35,7 +233,8 @@ type retryTransport struct {
 }
 
 type YouTubeSession struct {
-	client *youtube.Client
+	client    *youtube.Client
+	transport *androidVRTransport
 }
 
 func (t *androidVRTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -43,21 +242,26 @@ func (t *androidVRTransport) RoundTrip(req *http.Request) (*http.Response, error
 		t.mu.RLock()
 		playerResponse := append([]byte(nil), t.playerResponse...)
 		t.mu.RUnlock()
+
 		if len(playerResponse) > 0 {
-			var compact bytes.Buffer
-			if err := json.Compact(&compact, playerResponse); err != nil {
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+			resp, err := t.base.RoundTrip(req)
+			if err != nil {
 				return nil, err
 			}
-			body := append([]byte("var ytInitialPlayerResponse = "), compact.Bytes()...)
-			body = append(body, ';')
-			return &http.Response{
-				StatusCode:    http.StatusOK,
-				Status:        "200 OK",
-				Header:        http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
-				Body:          io.NopCloser(bytes.NewReader(body)),
-				ContentLength: int64(len(body)),
-				Request:       req,
-			}, nil
+			if resp.StatusCode == http.StatusOK {
+				body, readErr := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				if readErr == nil {
+					t.mu.Lock()
+					t.watchPageHTML = append(t.watchPageHTML[:0], body...)
+					t.mu.Unlock()
+					resp.Body = io.NopCloser(bytes.NewReader(body))
+					return resp, nil
+				}
+				return nil, readErr
+			}
+			return resp, nil
 		}
 	}
 
@@ -83,6 +287,12 @@ func (t *androidVRTransport) RoundTrip(req *http.Request) (*http.Response, error
 	t.mu.Unlock()
 
 	return response, nil
+}
+
+func (t *androidVRTransport) WatchPageHTML() []byte {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return append([]byte(nil), t.watchPageHTML...)
 }
 
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -185,9 +395,11 @@ func newStreamingHTTPClient() *http.Client {
 
 func NewYouTubeSession() *YouTubeSession {
 	httpClient := newMetadataHTTPClient()
-	return &YouTubeSession{client: &youtube.Client{
-		HTTPClient: httpClient,
-	}}
+	transport := httpClient.Transport.(*androidVRTransport)
+	return &YouTubeSession{
+		client:    &youtube.Client{HTTPClient: httpClient},
+		transport: transport,
+	}
 }
 
 func getClient() *youtube.Client {
@@ -221,6 +433,15 @@ func (s *YouTubeSession) GetVideo(ctx context.Context, url string) (*youtube.Vid
 		}
 	}
 	return nil, lastErr
+}
+
+func (s *YouTubeSession) ExtractMusicMetadata() *MusicMetadata {
+	html := s.transport.WatchPageHTML()
+	if len(html) == 0 {
+		return nil
+	}
+	meta, _ := parseMusicMetadataFromHTML(html)
+	return meta
 }
 
 func isTransientYouTubeError(err error) bool {
@@ -373,7 +594,7 @@ func (s *YouTubeSession) DownloadAudio(ctx context.Context, video *youtube.Video
 	return destPath, nil
 }
 
-func ConvertToMp3(ctx context.Context, inputPath string, outputPath string, quality string) error {
+func ConvertToMp3(ctx context.Context, inputPath string, outputPath string, quality string, metadata *MusicMetadata, coverPath string) error {
 	bitrate := "192k"
 	if quality != "" {
 		bitrate = strings.TrimSuffix(quality, "k") + "k"
@@ -384,7 +605,7 @@ func ConvertToMp3(ctx context.Context, inputPath string, outputPath string, qual
 	}
 
 	var stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, ffmpegPath, ffmpegMP3Args(inputPath, outputPath, bitrate)...)
+	cmd := exec.CommandContext(ctx, ffmpegPath, ffmpegMP3Args(inputPath, outputPath, bitrate, metadata, coverPath)...)
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()
@@ -394,18 +615,45 @@ func ConvertToMp3(ctx context.Context, inputPath string, outputPath string, qual
 	return nil
 }
 
-func ffmpegMP3Args(inputPath, outputPath, bitrate string) []string {
-	return []string{
-		"-y",
-		"-i", inputPath,
-		"-vn",
+func ffmpegMP3Args(inputPath, outputPath, bitrate string, metadata *MusicMetadata, coverPath string) []string {
+	args := []string{"-y", "-i", inputPath}
+
+	if coverPath != "" {
+		args = append(args, "-i", coverPath)
+	}
+	args = append(args,
 		"-c:a", "libmp3lame",
 		"-b:a", bitrate,
 		"-ar", "44100",
 		"-ac", "2",
 		"-joint_stereo", "1",
-		"-map_metadata", "0",
-		"-f", "mp3",
-		outputPath,
+	)
+
+	if metadata != nil {
+		if metadata.Song != "" {
+			args = append(args, "-metadata", "title="+metadata.Song)
+		}
+		if metadata.Artist != "" {
+			args = append(args, "-metadata", "artist="+metadata.Artist)
+		}
+		if metadata.Album != "" {
+			args = append(args, "-metadata", "album="+metadata.Album)
+		}
 	}
+
+	args = append(args, "-map_metadata", "0")
+
+	if coverPath != "" {
+		args = append(args,
+			"-map", "0:a:0",
+			"-map", "1:v:0",
+			"-c:v", "copy",
+			"-disposition:v", "attached_pic",
+		)
+	} else {
+		args = append(args, "-vn")
+	}
+
+	args = append(args, "-id3v2_version", "3", "-f", "mp3", outputPath)
+	return args
 }

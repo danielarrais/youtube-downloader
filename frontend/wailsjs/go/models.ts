@@ -46,6 +46,7 @@ export namespace main {
 	    error?: string;
 	    file_path?: string;
 	    file_size?: number;
+	    thumbnail_url?: string;
 	    created_at: string;
 	    started_at?: string;
 	    completed_at?: string;
@@ -65,6 +66,7 @@ export namespace main {
 	        this.error = source["error"];
 	        this.file_path = source["file_path"];
 	        this.file_size = source["file_size"];
+	        this.thumbnail_url = source["thumbnail_url"];
 	        this.created_at = source["created_at"];
 	        this.started_at = source["started_at"];
 	        this.completed_at = source["completed_at"];

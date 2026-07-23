@@ -20,6 +20,9 @@ export interface Translations {
   fileDeletionDelete: string;
   fileDeletionAsk: string;
   fileDeletionKeep: string;
+  language: string;
+  languagePortuguese: string;
+  languageEnglish: string;
   theme: string;
   themeDark: string;
   themeLight: string;
@@ -89,6 +92,9 @@ export const translations: Record<Language, Translations> = {
     fileDeletionDelete: 'Apagar do disco',
     fileDeletionAsk: 'Perguntar',
     fileDeletionKeep: 'Manter no disco',
+    language: 'Idioma',
+    languagePortuguese: 'Português',
+    languageEnglish: 'Inglês',
     theme: 'Tema',
     themeDark: 'Escuro',
     themeLight: 'Claro',
@@ -150,6 +156,9 @@ export const translations: Record<Language, Translations> = {
     fileDeletionDelete: 'Delete from disk',
     fileDeletionAsk: 'Ask',
     fileDeletionKeep: 'Keep on disk',
+    language: 'Language',
+    languagePortuguese: 'Portuguese',
+    languageEnglish: 'English',
     theme: 'Theme',
     themeDark: 'Dark',
     themeLight: 'Light',

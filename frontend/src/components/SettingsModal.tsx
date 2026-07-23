@@ -120,14 +120,14 @@ export function SettingsModal({
           )}
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">Idioma</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">{t.language}</label>
             <select
               value={selectedLanguage}
               onChange={(event) => setSelectedLanguage(event.target.value as Language)}
               className="app-select w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
             >
-              <option value="pt-BR">🇧🇷 PT-BR</option>
-              <option value="en-US">🇺🇸 EN-US</option>
+              <option value="pt-BR">{t.languagePortuguese}</option>
+              <option value="en-US">{t.languageEnglish}</option>
             </select>
           </div>
 

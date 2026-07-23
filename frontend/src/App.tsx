@@ -28,7 +28,7 @@ function App() {
   const filteredDownloads = downloads.filter(item => {
     switch (activeFilter) {
       case 'downloading':
-        return item.status === 'downloading';
+        return ['downloading', 'converting'].includes(item.status);
       case 'pending':
         return ['pending', 'fetching_info', 'converting'].includes(item.status);
       case 'completed':

@@ -1,11 +1,13 @@
 import * as WailsApp from '../../wailsjs/go/main/App';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
-import { Config, DownloadItem, PlaylistInfo, QueueStats } from '../types';
+import { Config, DownloadItem, PlaylistInfo, QueueStats, VideoDownloadRequest, VideoInfo } from '../types';
 import { AppAPI } from './types';
 
 export const wailsApi: AppAPI = {
   capabilities: { nativeFolders: true },
   addDownloads: (urls, quality) => WailsApp.AddDownloads(urls, quality) as Promise<DownloadItem[]>,
+  addVideoDownloads: (requests: VideoDownloadRequest[]) => WailsApp.AddVideoDownloads(requests as never) as Promise<DownloadItem[]>,
+  getVideoFormats: (url) => WailsApp.GetVideoFormats(url) as Promise<VideoInfo>,
   getDownloads: () => WailsApp.GetDownloads() as Promise<DownloadItem[]>,
   getStats: () => WailsApp.GetStats() as Promise<QueueStats>,
   cancelDownload: WailsApp.CancelDownload,

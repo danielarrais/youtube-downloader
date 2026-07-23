@@ -22,8 +22,10 @@ type webServer struct {
 }
 
 type addDownloadsRequest struct {
-	URLs    []string `json:"urls"`
-	Quality string   `json:"quality"`
+	URLs          []string               `json:"urls"`
+	Quality       string                 `json:"quality"`
+	MediaType     MediaType              `json:"media_type,omitempty"`
+	VideoRequests []VideoDownloadRequest `json:"video_requests,omitempty"`
 }
 
 type languageRequest struct {
@@ -45,6 +47,7 @@ func newWebHandler(app *App, assets fs.FS, downloadDir string) http.Handler {
 	mux.HandleFunc("GET /api/downloads/{id}/file", server.downloadFile)
 	mux.HandleFunc("GET /api/stats", server.getStats)
 	mux.HandleFunc("GET /api/playlist", server.getPlaylist)
+	mux.HandleFunc("GET /api/video-formats", server.getVideoFormats)
 	mux.HandleFunc("POST /api/queue/pause", server.pauseQueue)
 	mux.HandleFunc("POST /api/queue/resume", server.resumeQueue)
 	mux.HandleFunc("POST /api/queue/cancel-all", server.cancelAll)
@@ -70,6 +73,24 @@ func (s *webServer) addDownloads(w http.ResponseWriter, r *http.Request) {
 	var request addDownloadsRequest
 	if err := decodeJSON(r, &request); err != nil {
 		writeAPIError(w, http.StatusBadRequest, err)
+		return
+	}
+	if request.MediaType == MediaTypeVideo {
+		if len(request.VideoRequests) == 0 {
+			writeAPIError(w, http.StatusBadRequest, errors.New("video_requests is required"))
+			return
+		}
+		for _, videoRequest := range request.VideoRequests {
+			if strings.TrimSpace(videoRequest.URL) == "" || videoRequest.Format.VideoItag == 0 {
+				writeAPIError(w, http.StatusBadRequest, errors.New("invalid video request"))
+				return
+			}
+		}
+		writeJSON(w, http.StatusCreated, s.app.AddVideoDownloads(request.VideoRequests))
+		return
+	}
+	if request.MediaType != "" && request.MediaType != MediaTypeAudio {
+		writeAPIError(w, http.StatusBadRequest, errors.New("invalid media_type"))
 		return
 	}
 	if len(request.URLs) == 0 {
@@ -149,6 +170,20 @@ func (s *webServer) getPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, playlist)
+}
+
+func (s *webServer) getVideoFormats(w http.ResponseWriter, r *http.Request) {
+	rawURL := r.URL.Query().Get("url")
+	if rawURL == "" {
+		writeAPIError(w, http.StatusBadRequest, errors.New("url is required"))
+		return
+	}
+	info, err := s.app.GetVideoFormats(rawURL)
+	if err != nil {
+		writeAPIError(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, info)
 }
 
 func (s *webServer) pauseQueue(w http.ResponseWriter, _ *http.Request) {

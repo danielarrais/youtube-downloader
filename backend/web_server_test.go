@@ -42,6 +42,29 @@ func TestWebHealthAndDownloads(t *testing.T) {
 	}
 }
 
+func TestWebAddsSelectedVideoDownloads(t *testing.T) {
+	app := newWebTestApp(t)
+	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
+	request := httptest.NewRequest(http.MethodPost, "/api/downloads", strings.NewReader(`{
+		"media_type":"video",
+		"video_requests":[{"url":"https://youtu.be/video","format":{"video_itag":137,"audio_itag":140,"container":"mp4","extension":"mp4","resolution":"1080p","label":"1080p (MP4)"}}]
+	}`))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("add video status = %d, body = %s", response.Code, response.Body.String())
+	}
+	var items []DownloadItem
+	if err := json.Unmarshal(response.Body.Bytes(), &items); err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].MediaType != MediaTypeVideo || items[0].VideoFormat == nil || items[0].VideoFormat.VideoItag != 137 {
+		t.Fatalf("added items = %#v", items)
+	}
+}
+
 func TestCheckWebHealth(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -160,7 +183,7 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	app := newWebTestApp(t)
 	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
 	request := httptest.NewRequest(http.MethodPut, "/api/config", strings.NewReader(
-		`{"download_dir":"/tmp/other","quality":"320k","language":"en-US"}`,
+		`{"download_dir":"/tmp/other","quality":"320k","video_container":"webm","video_quality":"720p","language":"en-US"}`,
 	))
 	response := httptest.NewRecorder()
 
@@ -179,6 +202,9 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	if config.Quality != "320k" {
 		t.Fatalf("quality = %q", config.Quality)
 	}
+	if config.VideoContainer != "webm" || config.VideoQuality != "720p" {
+		t.Fatalf("video preferences = %#v", config)
+	}
 }
 
 func newWebTestApp(t *testing.T) *App {
@@ -190,9 +216,11 @@ func newWebTestApp(t *testing.T) *App {
 	}
 	app := NewAppWithPaths(dataDir, downloadDir)
 	app.config = Config{
-		DownloadDir: downloadDir,
-		Quality:     "192k",
-		Language:    "pt-BR",
+		DownloadDir:    downloadDir,
+		Quality:        "192k",
+		VideoContainer: defaultVideoContainer,
+		VideoQuality:   defaultVideoQuality,
+		Language:       "pt-BR",
 	}
 	return app
 }

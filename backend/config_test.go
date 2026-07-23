@@ -8,9 +8,11 @@ import (
 func TestConfigFileRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config", "settings.json")
 	want := Config{
-		DownloadDir: filepath.Join(t.TempDir(), "downloads"),
-		Quality:     "320k",
-		Language:    "en-US",
+		DownloadDir:    filepath.Join(t.TempDir(), "downloads"),
+		Quality:        "320k",
+		VideoContainer: "webm",
+		VideoQuality:   "720p",
+		Language:       "en-US",
 	}
 	if err := saveConfigFile(path, want); err != nil {
 		t.Fatal(err)
@@ -25,8 +27,19 @@ func TestConfigFileRoundTrip(t *testing.T) {
 }
 
 func TestNormalizeConfigUsesDefaults(t *testing.T) {
-	defaults := Config{DownloadDir: "/downloads", Quality: "192k", Language: "pt-BR"}
-	got := normalizeConfig(Config{Quality: "invalid", Language: "invalid"}, defaults)
+	defaults := Config{
+		DownloadDir:    "/downloads",
+		Quality:        "192k",
+		VideoContainer: "mp4",
+		VideoQuality:   "1080p",
+		Language:       "pt-BR",
+	}
+	got := normalizeConfig(Config{
+		Quality:        "invalid",
+		VideoContainer: "invalid",
+		VideoQuality:   "invalid",
+		Language:       "invalid",
+	}, defaults)
 	if got != defaults {
 		t.Fatalf("normalizeConfig() = %#v, want %#v", got, defaults)
 	}

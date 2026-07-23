@@ -1,8 +1,8 @@
 # YouTube MP3 Downloader
 
 Desktop application built with Go, Wails, and React for downloading YouTube
-videos and playlists as MP3 files. The queue, output directory, quality, and
-language are persisted between restarts.
+videos and playlists as MP3 files or their available video streams. The queue,
+output directory, quality, and language are persisted between restarts.
 
 The same frontend can also run as a web application. The desktop version uses
 the native Wails bridge, while the web version communicates with the Go backend
@@ -75,6 +75,21 @@ The Vite frontend is also available at `http://localhost:5173`.
 
 To use the browser with access to the Go methods during development, open the
 URL shown by Wails after `To develop in the browser`, not the direct Vite port.
+
+## Video downloads
+
+Select **Vídeo** before adding URLs. The application queries each video and
+shows only the formats currently offered by YouTube. Adaptive streams are
+downloaded with their matching audio stream and muxed without recoding:
+
+- compatible MP4 streams produce `.mp4` files;
+- compatible WebM streams produce `.webm` files;
+- mixed stream containers produce `.mkv` files to preserve their codecs.
+
+Private, age-restricted, region-blocked videos and temporary YouTube rate
+limits can prevent a format from being listed or downloaded. The client retries
+temporary transport failures, but an HTTP 429 that persists after those retries
+must be retried later or from a network that is not rate-limited.
 
 ## Web with Docker
 
@@ -210,6 +225,15 @@ npm run build --prefix frontend
 go -C backend test -race -tags webkit2_41 ./...
 go -C backend test -race -tags web ./...
 go -C backend vet -tags webkit2_41 ./...
+```
+
+The optional live integration test downloads and muxes a selected video stream
+in a temporary directory. It is intentionally excluded unless a test URL is
+provided:
+
+```bash
+YOUTUBE_VIDEO_TEST_URL='https://www.youtube.com/watch?v=8uX3tfR6ELc&t=1s' \
+  go -C backend test -run TestLiveVideoDownloadAndMux -v
 ```
 
 ## Build

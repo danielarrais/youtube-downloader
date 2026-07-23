@@ -8,6 +8,7 @@ function App() {
     downloads,
     stats,
     addDownloads,
+    addVideoDownloads,
     cancelDownload,
     retryDownload,
     retryFailed,
@@ -23,7 +24,7 @@ function App() {
       <Header stats={stats} />
       
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        <UrlInput onSubmit={addDownloads} />
+        <UrlInput onSubmitAudio={addDownloads} onSubmitVideo={addVideoDownloads} />
         
         <DownloadQueue
           downloads={downloads}

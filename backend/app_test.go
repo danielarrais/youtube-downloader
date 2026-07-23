@@ -131,11 +131,12 @@ func TestResolveOutputPathAddsVideoIDForQueueCollision(t *testing.T) {
 	}
 }
 
-func TestCleanupPartialFilesRemovesOnlyMP3Parts(t *testing.T) {
+func TestCleanupPartialFilesRemovesKnownMediaParts(t *testing.T) {
 	dir := t.TempDir()
 	partPath := filepath.Join(dir, "song.mp3.part")
+	videoPartPath := filepath.Join(dir, "movie.mp4.part")
 	otherPath := filepath.Join(dir, "keep.tmp")
-	for _, path := range []string{partPath, otherPath} {
+	for _, path := range []string{partPath, videoPartPath, otherPath} {
 		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
 			t.Fatal(err)
 		}
@@ -146,6 +147,9 @@ func TestCleanupPartialFilesRemovesOnlyMP3Parts(t *testing.T) {
 	}
 	if _, err := os.Stat(partPath); !os.IsNotExist(err) {
 		t.Fatalf("partial MP3 was not removed: %v", err)
+	}
+	if _, err := os.Stat(videoPartPath); !os.IsNotExist(err) {
+		t.Fatalf("partial video was not removed: %v", err)
 	}
 	if _, err := os.Stat(otherPath); err != nil {
 		t.Fatalf("unrelated file was removed: %v", err)

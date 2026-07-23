@@ -23,6 +23,8 @@ export interface DownloadItem {
   status: DownloadStatus;
   progress: DownloadProgress;
   quality: string;
+  media_type?: 'audio' | 'video';
+  video_format?: VideoFormat;
   file_path?: string;
   file_size?: number;
   error?: string;
@@ -30,6 +32,30 @@ export interface DownloadItem {
   created_at: string;
   started_at?: string;
   completed_at?: string;
+}
+
+export interface VideoFormat {
+  video_itag: number;
+  audio_itag?: number;
+  container: string;
+  extension: string;
+  resolution: string;
+  fps?: number;
+  video_codec?: string;
+  audio_codec?: string;
+  size?: number;
+  label: string;
+}
+
+export interface VideoInfo {
+  title: string;
+  thumbnail_url?: string;
+  formats: VideoFormat[];
+}
+
+export interface VideoDownloadRequest {
+  url: string;
+  format: VideoFormat;
 }
 
 export interface QueueStats {
@@ -63,5 +89,7 @@ export interface PlaylistInfo {
 export interface Config {
   download_dir: string;
   quality: string;
+  video_container: 'mp4' | 'webm' | 'mkv';
+  video_quality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
   language: string;
 }

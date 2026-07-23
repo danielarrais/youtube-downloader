@@ -3,6 +3,8 @@ import {
   DownloadItem,
   PlaylistInfo,
   QueueStats,
+  VideoDownloadRequest,
+  VideoInfo,
 } from '../types';
 
 export interface SubscriptionHandlers {
@@ -16,6 +18,8 @@ export interface AppAPI {
     nativeFolders: boolean;
   };
   addDownloads(urls: string[], quality: string): Promise<DownloadItem[]>;
+  addVideoDownloads(requests: VideoDownloadRequest[]): Promise<DownloadItem[]>;
+  getVideoFormats(url: string): Promise<VideoInfo>;
   getDownloads(): Promise<DownloadItem[]>;
   getStats(): Promise<QueueStats>;
   cancelDownload(id: string): Promise<void>;

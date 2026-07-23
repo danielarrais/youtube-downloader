@@ -4,15 +4,24 @@ import { useTranslation } from '../hooks/useTranslation';
 interface SettingsModalProps {
   downloadDir: string;
   quality: string;
+  videoContainer: 'mp4' | 'webm' | 'mkv';
+  videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
   onChooseFolder: () => Promise<string | undefined>;
   onClose: () => void;
-  onSave: (downloadDir: string, quality: string) => Promise<void>;
+  onSave: (
+    downloadDir: string,
+    quality: string,
+    videoContainer: 'mp4' | 'webm' | 'mkv',
+    videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p',
+  ) => Promise<void>;
   canChooseFolder: boolean;
 }
 
 export function SettingsModal({
   downloadDir,
   quality,
+  videoContainer,
+  videoQuality,
   onChooseFolder,
   onClose,
   onSave,
@@ -21,6 +30,8 @@ export function SettingsModal({
   const { t } = useTranslation();
   const [selectedDir, setSelectedDir] = useState(downloadDir);
   const [selectedQuality, setSelectedQuality] = useState(quality);
+  const [selectedVideoContainer, setSelectedVideoContainer] = useState(videoContainer);
+  const [selectedVideoQuality, setSelectedVideoQuality] = useState(videoQuality);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,7 +44,7 @@ export function SettingsModal({
     setSaving(true);
     setError('');
     try {
-      await onSave(selectedDir, selectedQuality);
+      await onSave(selectedDir, selectedQuality, selectedVideoContainer, selectedVideoQuality);
       onClose();
     } catch {
       setError(t.settingsSaveError);
@@ -64,6 +75,30 @@ export function SettingsModal({
                 {t.chooseFolder}
               </button>
             )}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">{t.videoFormat}</label>
+            <select
+              value={selectedVideoContainer}
+              onChange={(event) => setSelectedVideoContainer(event.target.value as typeof selectedVideoContainer)}
+              className="app-select w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none"
+            >
+              <option value="mp4">MP4</option>
+              <option value="webm">WebM</option>
+              <option value="mkv">MKV</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">{t.videoQuality}</label>
+            <select
+              value={selectedVideoQuality}
+              onChange={(event) => setSelectedVideoQuality(event.target.value as typeof selectedVideoQuality)}
+              className="app-select w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none"
+            >
+              {['144p', '240p', '360p', '480p', '720p', '1080p', '1440p', '2160p'].map(value => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

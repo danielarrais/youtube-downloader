@@ -26,6 +26,8 @@ const post = <T>(path: string, body?: unknown) => request<T>(path, {
 export const webApi: AppAPI = {
   capabilities: { nativeFolders: false },
   addDownloads: (urls, quality) => post('/api/downloads', { urls, quality }),
+  addVideoDownloads: (video_requests) => post('/api/downloads', { media_type: 'video', video_requests }),
+  getVideoFormats: (url) => request(`/api/video-formats?url=${encodeURIComponent(url)}`),
   getDownloads: () => request('/api/downloads'),
   getStats: () => request('/api/stats'),
   cancelDownload: (id) => post(`/api/downloads/${encodeURIComponent(id)}/cancel`),

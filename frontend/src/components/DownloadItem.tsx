@@ -87,7 +87,9 @@ export function DownloadItem({ item, onCancel, onRetry }: DownloadItemProps) {
                 onClick={() => api.openDownload(item)}
                 className="text-sm text-green-400 hover:text-green-300 transition-colors"
               >
-                {api.capabilities.nativeFolders ? t.openFolder : t.downloadFile}
+                {api.capabilities.nativeFolders
+                  ? t.openFolder
+                  : item.media_type === 'video' ? t.downloadVideoFile : t.downloadFile}
               </button>
             )}
           </div>

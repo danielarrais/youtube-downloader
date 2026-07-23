@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const queueStateVersion = 2
+const queueStateVersion = 3
 
 type queueState struct {
 	Version int            `json:"version"`
@@ -98,7 +98,7 @@ func (a *App) loadQueue() error {
 		}
 		return fmt.Errorf("fila inválida; arquivo preservado: %w", err)
 	}
-	if state.Version != 1 && state.Version != queueStateVersion {
+	if state.Version != 1 && state.Version != 2 && state.Version != queueStateVersion {
 		return fmt.Errorf("versão da fila não suportada: %d", state.Version)
 	}
 
@@ -107,6 +107,10 @@ func (a *App) loadQueue() error {
 	changed := false
 	for index := range state.Items {
 		item := state.Items[index]
+		if item.MediaType == "" {
+			item.MediaType = MediaTypeAudio
+			changed = true
+		}
 		if item.ID == "" {
 			changed = true
 			continue
@@ -138,7 +142,9 @@ func (a *App) loadQueue() error {
 func normalizeRestoredItem(item *DownloadItem, cacheDir string) bool {
 	switch item.Status {
 	case StatusFetching, StatusDownloading, StatusConverting:
-		os.Remove(filepath.Join(cacheDir, item.ID+".tmp"))
+		for _, suffix := range []string{".tmp", ".video.tmp", ".audio.tmp"} {
+			os.Remove(filepath.Join(cacheDir, item.ID+suffix))
+		}
 		item.Status = StatusPending
 		item.Progress = DownloadProgress{Speed: "---", ETA: "---"}
 		item.Error = ""
@@ -160,7 +166,11 @@ func normalizeRestoredItem(item *DownloadItem, cacheDir string) bool {
 
 func markMissingFile(item *DownloadItem) {
 	item.Status = StatusFailed
-	item.Error = "Arquivo MP3 não encontrado"
+	if item.MediaType == MediaTypeVideo {
+		item.Error = "Arquivo de vídeo não encontrado"
+	} else {
+		item.Error = "Arquivo MP3 não encontrado"
+	}
 	item.FilePath = ""
 	item.FileSize = 0
 }

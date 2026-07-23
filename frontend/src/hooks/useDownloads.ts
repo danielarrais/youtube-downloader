@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { api } from '../services/api';
-import { DownloadItem, QueueStats } from '../types';
+import { DownloadItem, QueueStats, VideoDownloadRequest } from '../types';
 
 export function useDownloads() {
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
@@ -51,8 +51,17 @@ export function useDownloads() {
     }
   }, [refreshData]);
 
+  const addVideoDownloads = useCallback(async (requests: VideoDownloadRequest[]) => {
+    try {
+      await api.addVideoDownloads(requests);
+      await refreshData();
+    } catch (e) {
+      console.error("JS: Erro ao adicionar vídeos:", e);
+    }
+  }, [refreshData]);
+
   return {
-    downloads, stats, addDownloads,
+    downloads, stats, addDownloads, addVideoDownloads,
     cancelDownload: async (id: string) => { await api.cancelDownload(id); refreshData(); },
     retryDownload: async (id: string) => { await api.retryDownload(id); refreshData(); },
     retryFailed: async () => { await api.retryFailed(); refreshData(); },

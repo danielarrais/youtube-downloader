@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function AddDownloads(arg1:Array<string>,arg2:string):Promise<Array<main.DownloadItem>>;
 
+export function AddVideoDownloads(arg1:Array<main.VideoDownloadRequest>):Promise<Array<main.DownloadItem>>;
+
 export function CancelAll():Promise<void>;
 
 export function CancelDownload(arg1:string):Promise<void>;
@@ -19,6 +21,8 @@ export function GetDownloads():Promise<Array<main.DownloadItem>>;
 export function GetPlaylistInfo(arg1:string):Promise<main.PlaylistInfo>;
 
 export function GetStats():Promise<main.QueueStats>;
+
+export function GetVideoFormats(arg1:string):Promise<main.VideoInfo>;
 
 export function OpenDirectory(arg1:string):Promise<void>;
 

@@ -1,25 +1,66 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import { api } from '../services/api';
-import { PlaylistInfo } from '../types';
+import { Config, PlaylistInfo, VideoDownloadRequest, VideoFormat, VideoInfo } from '../types';
 import { PlaylistLoadState, PlaylistModal } from './PlaylistModal';
 import { SettingsModal } from './SettingsModal';
 
 interface UrlInputProps {
-  onSubmit: (urls: string[], quality: string) => void;
+  onSubmitAudio: (urls: string[], quality: string) => void;
+  onSubmitVideo: (requests: VideoDownloadRequest[]) => void;
 }
 
 const cleanYouTubeUrl = (value: string) => value.trim().split('&', 1)[0];
 
-export function UrlInput({ onSubmit }: UrlInputProps) {
+type VideoContainer = Config['video_container'];
+type VideoQuality = Config['video_quality'];
+
+const videoQualityValue = (quality: string) => Number(quality.match(/\d+/)?.[0]) || 0;
+
+export function preferredVideoFormat(
+  formats: VideoFormat[],
+  targetContainer: VideoContainer,
+  targetQuality: VideoQuality,
+) {
+  const matchingContainer = formats.filter(format => format.container === targetContainer);
+  const candidates = matchingContainer.length > 0 ? matchingContainer : formats;
+  const target = videoQualityValue(targetQuality);
+  const atOrBelowTarget = candidates.filter(format => videoQualityValue(format.resolution) <= target);
+  const pool = atOrBelowTarget.length > 0
+    ? atOrBelowTarget
+    : candidates.filter(format => videoQualityValue(format.resolution) > target);
+
+  return [...pool].sort((left, right) => {
+    const leftQuality = videoQualityValue(left.resolution);
+    const rightQuality = videoQualityValue(right.resolution);
+    if (leftQuality !== rightQuality) {
+      return atOrBelowTarget.length > 0 ? rightQuality - leftQuality : leftQuality - rightQuality;
+    }
+    if ((left.fps || 0) !== (right.fps || 0)) return (right.fps || 0) - (left.fps || 0);
+    return (right.size || 0) - (left.size || 0);
+  })[0];
+}
+
+interface VideoSelection {
+  url: string;
+  info?: VideoInfo;
+  selectedItag?: number;
+  error?: string;
+}
+
+export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
   const { t, language } = useTranslation();
   const [urls, setUrls] = useState('');
   const [quality, setQuality] = useState('192k');
+  const [videoContainer, setVideoContainer] = useState<VideoContainer>('mp4');
+  const [videoQuality, setVideoQuality] = useState<VideoQuality>('1080p');
+  const [mediaType, setMediaType] = useState<'audio' | 'video'>('audio');
   const [downloadDir, setDownloadDir] = useState('---');
   const [playlistStates, setPlaylistStates] = useState<PlaylistLoadState[] | null>(null);
   const [selectedVideoKeys, setSelectedVideoKeys] = useState<Set<string>>(new Set());
   const [directVideoUrls, setDirectVideoUrls] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [videoSelections, setVideoSelections] = useState<VideoSelection[] | null>(null);
 
   // Carrega configuração inicial
   useEffect(() => {
@@ -27,6 +68,8 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
       if (config) {
         setDownloadDir(config.download_dir || '---');
         setQuality(config.quality || '192k');
+        setVideoContainer(config.video_container || 'mp4');
+        setVideoQuality(config.video_quality || '1080p');
       }
     });
   }, []);
@@ -73,7 +116,7 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
     const playlistUrls = [...new Set(urlList.filter(isPlaylistUrl))];
     const videoUrls = urlList.filter(url => !isPlaylistUrl(url));
     if (playlistUrls.length === 0) {
-      onSubmit(videoUrls, quality);
+      submitURLs(videoUrls);
       setUrls('');
       return;
     }
@@ -105,6 +148,27 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
     });
   };
 
+  const submitURLs = (videoUrls: string[]) => {
+    if (mediaType === 'audio') {
+      onSubmitAudio(videoUrls, quality);
+      return;
+    }
+    setVideoSelections(videoUrls.map(url => ({ url })));
+    videoUrls.forEach(url => {
+      api.getVideoFormats(url)
+        .then(info => {
+          setVideoSelections(current => current?.map(selection => selection.url === url
+            ? { url, info, selectedItag: preferredVideoFormat(info.formats, videoContainer, videoQuality)?.video_itag }
+            : selection) || null);
+        })
+        .catch(error => {
+          setVideoSelections(current => current?.map(selection => selection.url === url
+            ? { url, error: error instanceof Error ? error.message : String(error) }
+            : selection) || null);
+        });
+    });
+  };
+
   const togglePlaylistVideo = (key: string) => {
     setSelectedVideoKeys(current => {
       const next = new Set(current);
@@ -131,7 +195,7 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
         .filter(video => video.available && selectedVideoKeys.has(`${item.playlist!.id}:${video.index}`))
         .map(video => video.url) || []
     ) || [];
-    onSubmit([...directVideoUrls, ...selectedUrls], quality);
+    submitURLs([...directVideoUrls, ...selectedUrls]);
     setUrls('');
     setPlaylistStates(null);
     setSelectedVideoKeys(new Set());
@@ -143,14 +207,23 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
     return newPath || undefined;
   };
 
-  const handleSaveSettings = async (newDownloadDir: string, newQuality: string) => {
+  const handleSaveSettings = async (
+    newDownloadDir: string,
+    newQuality: string,
+    newVideoContainer: VideoContainer,
+    newVideoQuality: VideoQuality,
+  ) => {
     const config = await api.saveConfig({
       download_dir: newDownloadDir,
       quality: newQuality,
+      video_container: newVideoContainer,
+      video_quality: newVideoQuality,
       language,
     });
     setDownloadDir(config?.download_dir || newDownloadDir);
     setQuality(config?.quality || newQuality);
+    setVideoContainer(config?.video_container || newVideoContainer);
+    setVideoQuality(config?.video_quality || newVideoQuality);
   };
 
   return (
@@ -180,7 +253,15 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
           className="w-full h-28 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-all text-sm"
         />
 
-        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap">
+          <select
+            value={mediaType}
+            onChange={(event) => setMediaType(event.target.value as 'audio' | 'video')}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+          >
+            <option value="audio">MP3</option>
+            <option value="video">Vídeo</option>
+          </select>
           <button
             type="submit"
             className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-2 rounded-lg transition-all text-sm shadow-lg shadow-red-900/20 active:scale-95"
@@ -211,10 +292,66 @@ export function UrlInput({ onSubmit }: UrlInputProps) {
         />
       )}
 
+      {videoSelections && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg border border-gray-700 bg-gray-800 p-5 space-y-4 shadow-2xl">
+            <h2 className="text-lg font-semibold text-white">Escolha o formato de cada vídeo</h2>
+            {videoSelections.map(selection => (
+              <div key={selection.url} className="flex gap-3 rounded border border-gray-700 bg-gray-900/50 p-3">
+                {selection.info?.thumbnail_url ? (
+                  <img src={selection.info.thumbnail_url} alt="" className="h-16 w-28 flex-none rounded object-cover" />
+                ) : (
+                  <div className="h-16 w-28 flex-none rounded bg-gray-700" />
+                )}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="truncate text-sm text-gray-200">{selection.info?.title || selection.url}</p>
+                  {selection.error && <p className="text-sm text-red-400">{selection.error}</p>}
+                  {!selection.info && !selection.error && <p className="text-sm text-gray-400">Carregando formatos...</p>}
+                  {selection.info && selection.info.formats.length === 0 && <p className="text-sm text-red-400">Nenhum formato de vídeo disponível.</p>}
+                  {selection.info && selection.info.formats.length > 0 && (
+                    <select
+                      value={selection.selectedItag || ''}
+                      onChange={(event) => setVideoSelections(current => current?.map(value => value.url === selection.url
+                        ? { ...value, selectedItag: Number(event.target.value) }
+                        : value) || null)}
+                      className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white"
+                    >
+                      {selection.info.formats.map(format => (
+                        <option key={format.video_itag} value={format.video_itag}>{format.label}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setVideoSelections(null)} className="rounded px-4 py-2 text-sm text-gray-300 hover:text-white">Cancelar</button>
+              <button
+                type="button"
+                disabled={videoSelections.some(selection => !selection.info || !selection.selectedItag)}
+                onClick={() => {
+                  const requests = videoSelections.flatMap(selection => {
+                    const format = selection.info?.formats.find(value => value.video_itag === selection.selectedItag);
+                    return format ? [{ url: selection.url, format }] : [];
+                  });
+                  onSubmitVideo(requests);
+                  setVideoSelections(null);
+                }}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-bold text-white enabled:hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Adicionar vídeos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {settingsOpen && (
         <SettingsModal
           downloadDir={downloadDir}
           quality={quality}
+          videoContainer={videoContainer}
+          videoQuality={videoQuality}
           onChooseFolder={handleSelectFolder}
           onClose={() => setSettingsOpen(false)}
           onSave={handleSaveSettings}

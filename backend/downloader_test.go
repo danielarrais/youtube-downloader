@@ -190,6 +190,61 @@ func TestFFmpegMP3ArgsWithCover(t *testing.T) {
 	}
 }
 
+func TestAvailableVideoFormatsPairsCompatibleAudio(t *testing.T) {
+	video := &youtube.Video{Formats: youtube.FormatList{
+		{ItagNo: 137, MimeType: `video/mp4; codecs="avc1.640028"`, QualityLabel: "1080p", FPS: 30, ContentLength: 100},
+		{ItagNo: 248, MimeType: `video/webm; codecs="vp9"`, QualityLabel: "1080p", FPS: 60, ContentLength: 120},
+		{ItagNo: 140, MimeType: `audio/mp4; codecs="mp4a.40.2"`, Bitrate: 128000, ContentLength: 10},
+		{ItagNo: 251, MimeType: `audio/webm; codecs="opus"`, Bitrate: 160000, ContentLength: 15},
+	}}
+
+	formats := AvailableVideoFormats(video)
+	if len(formats) != 2 {
+		t.Fatalf("AvailableVideoFormats() returned %d formats, want 2", len(formats))
+	}
+	byItag := map[int]VideoFormat{}
+	for _, format := range formats {
+		byItag[format.VideoItag] = format
+	}
+	if got := byItag[137]; got.AudioItag != 140 || got.Extension != "mp4" || got.Size != 110 {
+		t.Fatalf("MP4 selection = %#v", got)
+	}
+	if got := byItag[248]; got.AudioItag != 251 || got.Extension != "webm" || got.Size != 135 {
+		t.Fatalf("WebM selection = %#v", got)
+	}
+}
+
+func TestLargestVideoThumbnail(t *testing.T) {
+	thumbnails := youtube.Thumbnails{
+		{URL: "small.jpg", Width: 120, Height: 90},
+		{URL: "large.jpg", Width: 1280, Height: 720},
+		{URL: "medium.jpg", Width: 640, Height: 360},
+	}
+	if got := largestVideoThumbnail(thumbnails); got != "large.jpg" {
+		t.Fatalf("largestVideoThumbnail() = %q, want large.jpg", got)
+	}
+}
+
+func TestAvailableVideoFormatsUsesMKVForMixedContainers(t *testing.T) {
+	video := &youtube.Video{Formats: youtube.FormatList{
+		{ItagNo: 137, MimeType: `video/mp4; codecs="avc1.640028"`, QualityLabel: "1080p"},
+		{ItagNo: 251, MimeType: `audio/webm; codecs="opus"`, Bitrate: 160000},
+	}}
+
+	formats := AvailableVideoFormats(video)
+	if len(formats) != 1 || formats[0].Container != "mkv" || formats[0].Extension != "mkv" {
+		t.Fatalf("mixed container selection = %#v", formats)
+	}
+}
+
+func TestFFmpegVideoArgs(t *testing.T) {
+	args := ffmpegVideoArgs("video.tmp", "audio.tmp", "movie.mp4.part", "mp4")
+	want := []string{"-y", "-i", "video.tmp", "-i", "audio.tmp", "-map", "0:v:0", "-map", "1:a:0", "-c", "copy", "-movflags", "+faststart", "-f", "mp4", "movie.mp4.part"}
+	if fmt.Sprint(args) != fmt.Sprint(want) {
+		t.Fatalf("ffmpegVideoArgs() = %v, want %v", args, want)
+	}
+}
+
 func TestFetchVideoDescription(t *testing.T) {
 	url := os.Getenv("YOUTUBE_VIDEO_TEST_URL")
 	if url == "" {

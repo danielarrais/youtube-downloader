@@ -6,6 +6,10 @@ export function AddDownloads(arg1, arg2) {
   return window['go']['main']['App']['AddDownloads'](arg1, arg2);
 }
 
+export function AddVideoDownloads(arg1) {
+  return window['go']['main']['App']['AddVideoDownloads'](arg1);
+}
+
 export function CancelAll() {
   return window['go']['main']['App']['CancelAll']();
 }
@@ -36,6 +40,10 @@ export function GetPlaylistInfo(arg1) {
 
 export function GetStats() {
   return window['go']['main']['App']['GetStats']();
+}
+
+export function GetVideoFormats(arg1) {
+  return window['go']['main']['App']['GetVideoFormats'](arg1);
 }
 
 export function OpenDirectory(arg1) {

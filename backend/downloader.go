@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"os"
@@ -444,6 +445,150 @@ func (s *YouTubeSession) ExtractMusicMetadata() *MusicMetadata {
 	return meta
 }
 
+func (s *YouTubeSession) GetVideoFormats(ctx context.Context, url string) (VideoInfo, error) {
+	video, err := s.GetVideo(ctx, url)
+	if err != nil {
+		return VideoInfo{}, err
+	}
+	return VideoInfo{
+		Title:        video.Title,
+		ThumbnailURL: largestVideoThumbnail(video.Thumbnails),
+		Formats:      AvailableVideoFormats(video),
+	}, nil
+}
+
+func largestVideoThumbnail(thumbnails youtube.Thumbnails) string {
+	var largest youtube.Thumbnail
+	for _, thumbnail := range thumbnails {
+		if thumbnail.URL == "" {
+			continue
+		}
+		if thumbnail.Width*thumbnail.Height > largest.Width*largest.Height {
+			largest = thumbnail
+		}
+	}
+	return largest.URL
+}
+
+func AvailableVideoFormats(video *youtube.Video) []VideoFormat {
+	audioFormats := video.Formats.Type("audio")
+	formats := make([]VideoFormat, 0)
+	for _, videoFormat := range video.Formats.Type("video") {
+		videoContainer, videoCodec := formatDetails(videoFormat)
+		if videoContainer == "" {
+			continue
+		}
+
+		format := VideoFormat{
+			VideoItag:  videoFormat.ItagNo,
+			Container:  videoContainer,
+			Extension:  videoContainer,
+			Resolution: videoFormat.QualityLabel,
+			FPS:        videoFormat.FPS,
+			VideoCodec: videoCodec,
+			Size:       videoFormat.ContentLength,
+		}
+		if format.Resolution == "" {
+			format.Resolution = videoFormat.Quality
+		}
+
+		if videoFormat.AudioChannels == 0 {
+			audioFormat, found := selectAudioFormat(audioFormats, videoContainer)
+			if !found {
+				continue
+			}
+			audioContainer, audioCodec := formatDetails(audioFormat)
+			format.AudioItag = audioFormat.ItagNo
+			format.AudioCodec = audioCodec
+			format.Size += audioFormat.ContentLength
+			if audioContainer != videoContainer {
+				format.Container = "mkv"
+				format.Extension = "mkv"
+			}
+		} else {
+			_, format.AudioCodec = formatDetails(videoFormat)
+		}
+		format.Label = videoFormatLabel(format)
+		formats = append(formats, format)
+	}
+	sort.SliceStable(formats, func(i, j int) bool {
+		leftHeight, rightHeight := videoHeight(formats[i].Resolution), videoHeight(formats[j].Resolution)
+		if leftHeight != rightHeight {
+			return leftHeight > rightHeight
+		}
+		if formats[i].FPS != formats[j].FPS {
+			return formats[i].FPS > formats[j].FPS
+		}
+		return formats[i].Size > formats[j].Size
+	})
+	return formats
+}
+
+func selectAudioFormat(formats youtube.FormatList, container string) (youtube.Format, bool) {
+	var selected youtube.Format
+	found := false
+	for _, format := range formats {
+		formatContainer, _ := formatDetails(format)
+		if formatContainer != container {
+			continue
+		}
+		if !found || format.Bitrate > selected.Bitrate {
+			selected, found = format, true
+		}
+	}
+	if found {
+		return selected, true
+	}
+	for _, format := range formats {
+		if !found || format.Bitrate > selected.Bitrate {
+			selected, found = format, true
+		}
+	}
+	return selected, found
+}
+
+func formatDetails(format youtube.Format) (string, string) {
+	mediaType, params, err := mime.ParseMediaType(format.MimeType)
+	if err != nil {
+		return "", ""
+	}
+	parts := strings.SplitN(mediaType, "/", 2)
+	if len(parts) != 2 {
+		return "", ""
+	}
+	codecs := strings.Split(params["codecs"], ",")
+	for index := range codecs {
+		codecs[index] = strings.TrimSpace(codecs[index])
+	}
+	return parts[1], strings.Join(codecs, ", ")
+}
+
+func videoHeight(resolution string) int {
+	height := strings.TrimSuffix(strings.ToLower(resolution), "p")
+	value, _ := strconv.Atoi(height)
+	return value
+}
+
+func videoFormatLabel(format VideoFormat) string {
+	label := format.Resolution
+	if format.FPS > 0 {
+		label += fmt.Sprintf(" %d fps", format.FPS)
+	}
+	if format.VideoCodec != "" {
+		label += " - " + format.VideoCodec
+	}
+	return label + " (" + strings.ToUpper(format.Container) + ")"
+}
+
+func videoFormatByItag(video *youtube.Video, itag int) (*youtube.Format, bool) {
+	for index := range video.Formats {
+		if video.Formats[index].ItagNo == itag {
+			return &video.Formats[index], true
+		}
+	}
+	return nil, false
+}
+
 func isTransientYouTubeError(err error) bool {
 	var networkError net.Error
 	return errors.As(err, &networkError)
@@ -540,7 +685,10 @@ func (s *YouTubeSession) DownloadAudio(ctx context.Context, video *youtube.Video
 		return formats[i].Bitrate > formats[j].Bitrate
 	})
 
-	format := &formats[0]
+	return s.DownloadFormat(ctx, video, &formats[0], destPath, onProgress)
+}
+
+func (s *YouTubeSession) DownloadFormat(ctx context.Context, video *youtube.Video, format *youtube.Format, destPath string, onProgress func(percent float64, downloaded int64, total int64)) (string, error) {
 	s.client.HTTPClient = newStreamingHTTPClient()
 	stream, totalSize, err := s.client.GetStreamContext(ctx, video, format)
 	if err != nil {
@@ -656,4 +804,36 @@ func ffmpegMP3Args(inputPath, outputPath, bitrate string, metadata *MusicMetadat
 
 	args = append(args, "-id3v2_version", "3", "-f", "mp3", outputPath)
 	return args
+}
+
+func ConvertToVideo(ctx context.Context, videoPath, audioPath, outputPath, container string) error {
+	ffmpegPath, err := CheckAndDownloadFFmpeg()
+	if err != nil {
+		return err
+	}
+	var stderr bytes.Buffer
+	cmd := exec.CommandContext(ctx, ffmpegPath, ffmpegVideoArgs(videoPath, audioPath, outputPath, container)...)
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ffmpeg error: %v, detail: %s", err, stderr.String())
+	}
+	return nil
+}
+
+func ffmpegVideoArgs(videoPath, audioPath, outputPath, container string) []string {
+	args := []string{"-y", "-i", videoPath}
+	if audioPath != "" {
+		args = append(args, "-i", audioPath, "-map", "0:v:0", "-map", "1:a:0")
+	} else {
+		args = append(args, "-map", "0")
+	}
+	args = append(args, "-c", "copy")
+	if container == "mp4" {
+		args = append(args, "-movflags", "+faststart")
+	}
+	format := container
+	if container == "mkv" {
+		format = "matroska"
+	}
+	return append(args, "-f", format, outputPath)
 }

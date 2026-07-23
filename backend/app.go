@@ -120,9 +120,36 @@ func (a *App) AddDownloads(urls []string, quality string) []DownloadItem {
 			ID:        uuid.New().String(),
 			URL:       url,
 			Quality:   quality,
+			MediaType: MediaTypeAudio,
 			Status:    StatusPending,
 			CreatedAt: time.Now().Format(time.RFC3339),
 			Progress:  DownloadProgress{Percent: 0, Speed: "---", ETA: "---"},
+		}
+		a.items[item.ID] = item
+		a.queueOrder = append(a.queueOrder, item.ID)
+		newItems = append(newItems, *item)
+	}
+	a.mu.Unlock()
+	a.persistQueue()
+	a.emitStats()
+	a.signalWorker()
+	return newItems
+}
+
+func (a *App) AddVideoDownloads(requests []VideoDownloadRequest) []DownloadItem {
+	a.mu.Lock()
+	newItems := make([]DownloadItem, 0, len(requests))
+	for _, request := range requests {
+		url := cleanYouTubeURL(request.URL)
+		format := request.Format
+		item := &DownloadItem{
+			ID:          uuid.New().String(),
+			URL:         url,
+			MediaType:   MediaTypeVideo,
+			VideoFormat: &format,
+			Status:      StatusPending,
+			CreatedAt:   time.Now().Format(time.RFC3339),
+			Progress:    DownloadProgress{Percent: 0, Speed: "---", ETA: "---"},
 		}
 		a.items[item.ID] = item
 		a.queueOrder = append(a.queueOrder, item.ID)
@@ -141,6 +168,10 @@ func cleanYouTubeURL(rawURL string) string {
 		return url[:index]
 	}
 	return url
+}
+
+func (a *App) GetVideoFormats(url string) (VideoInfo, error) {
+	return NewYouTubeSession().GetVideoFormats(context.Background(), cleanYouTubeURL(url))
 }
 
 func (a *App) GetDownloads() []DownloadItem {

@@ -14,6 +14,8 @@ export interface Translations {
   urlsHint: string;
   urlsPlaceholder: string;
   quality: string;
+  videoFormat: string;
+  videoQuality: string;
   addToQueue: string;
   settings: string;
   downloadFolder: string;
@@ -43,6 +45,7 @@ export interface Translations {
   cancel: string;
   openFolder: string;
   downloadFile: string;
+  downloadVideoFile: string;
 
   // StatusBadge
   status: {
@@ -69,6 +72,8 @@ export const translations: Record<Language, Translations> = {
     urlsHint: 'Aceita vídeos individuais ou playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... ou playlist?list=...',
     quality: 'Qualidade',
+    videoFormat: 'Formato de vídeo padrão',
+    videoQuality: 'Qualidade de vídeo alvo',
     addToQueue: 'Adicionar à Fila',
     settings: 'Configurações',
     downloadFolder: 'Pasta de download',
@@ -94,6 +99,7 @@ export const translations: Record<Language, Translations> = {
     cancel: 'Cancelar',
     openFolder: 'Abrir na pasta',
     downloadFile: 'Baixar MP3',
+    downloadVideoFile: 'Baixar vídeo',
     status: {
       pending: 'Pendente',
       fetching_info: 'Obtendo info',
@@ -116,6 +122,8 @@ export const translations: Record<Language, Translations> = {
     urlsHint: 'Supports individual videos or playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... or playlist?list=...',
     quality: 'Quality',
+    videoFormat: 'Default video format',
+    videoQuality: 'Target video quality',
     addToQueue: 'Add to Queue',
     settings: 'Settings',
     downloadFolder: 'Download folder',
@@ -141,6 +149,7 @@ export const translations: Record<Language, Translations> = {
     cancel: 'Cancel',
     openFolder: 'Open folder',
     downloadFile: 'Download MP3',
+    downloadVideoFile: 'Download video',
     status: {
       pending: 'Pending',
       fetching_info: 'Fetching info',

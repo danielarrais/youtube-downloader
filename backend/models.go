@@ -2,6 +2,13 @@ package main
 
 type DownloadStatus string
 
+type MediaType string
+
+const (
+	MediaTypeAudio MediaType = "audio"
+	MediaTypeVideo MediaType = "video"
+)
+
 const (
 	StatusPending     DownloadStatus = "pending"
 	StatusFetching    DownloadStatus = "fetching_info"
@@ -26,6 +33,8 @@ type DownloadItem struct {
 	URL          string           `json:"url"`
 	Title        string           `json:"title"`
 	Quality      string           `json:"quality"`
+	MediaType    MediaType        `json:"media_type,omitempty"`
+	VideoFormat  *VideoFormat     `json:"video_format,omitempty"`
 	Status       DownloadStatus   `json:"status"`
 	Progress     DownloadProgress `json:"progress"`
 	Error        string           `json:"error,omitempty"`
@@ -35,6 +44,32 @@ type DownloadItem struct {
 	CreatedAt    string           `json:"created_at"`
 	StartedAt    string           `json:"started_at,omitempty"`
 	CompletedAt  string           `json:"completed_at,omitempty"`
+}
+
+// VideoFormat identifies a video stream and the audio stream needed to play it.
+// AudioItag is zero when the selected video stream already contains audio.
+type VideoFormat struct {
+	VideoItag  int    `json:"video_itag"`
+	AudioItag  int    `json:"audio_itag,omitempty"`
+	Container  string `json:"container"`
+	Extension  string `json:"extension"`
+	Resolution string `json:"resolution"`
+	FPS        int    `json:"fps,omitempty"`
+	VideoCodec string `json:"video_codec,omitempty"`
+	AudioCodec string `json:"audio_codec,omitempty"`
+	Size       int64  `json:"size,omitempty"`
+	Label      string `json:"label"`
+}
+
+type VideoInfo struct {
+	Title        string        `json:"title"`
+	ThumbnailURL string        `json:"thumbnail_url,omitempty"`
+	Formats      []VideoFormat `json:"formats"`
+}
+
+type VideoDownloadRequest struct {
+	URL    string      `json:"url"`
+	Format VideoFormat `json:"format"`
 }
 
 type QueueStats struct {

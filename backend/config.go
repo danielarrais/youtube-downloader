@@ -7,17 +7,26 @@ import (
 	"path/filepath"
 )
 
+const (
+	defaultVideoContainer = "mp4"
+	defaultVideoQuality   = "1080p"
+)
+
 type Config struct {
-	DownloadDir string `json:"download_dir"`
-	Quality     string `json:"quality"`
-	Language    string `json:"language"`
+	DownloadDir    string `json:"download_dir"`
+	Quality        string `json:"quality"`
+	VideoContainer string `json:"video_container"`
+	VideoQuality   string `json:"video_quality"`
+	Language       string `json:"language"`
 }
 
 func defaultConfig(home string) Config {
 	return Config{
-		DownloadDir: filepath.Join(home, "Downloads", "YouTube-MP3"),
-		Quality:     "192k",
-		Language:    "pt-BR",
+		DownloadDir:    filepath.Join(home, "Downloads", "YouTube-MP3"),
+		Quality:        "192k",
+		VideoContainer: defaultVideoContainer,
+		VideoQuality:   defaultVideoQuality,
+		Language:       "pt-BR",
 	}
 }
 
@@ -29,6 +38,22 @@ func normalizeConfig(config, defaults Config) Config {
 	case "128k", "192k", "320k":
 	default:
 		config.Quality = defaults.Quality
+	}
+	switch config.VideoContainer {
+	case "mp4", "webm", "mkv":
+	default:
+		config.VideoContainer = defaults.VideoContainer
+	}
+	if config.VideoContainer == "" {
+		config.VideoContainer = defaultVideoContainer
+	}
+	switch config.VideoQuality {
+	case "144p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p":
+	default:
+		config.VideoQuality = defaults.VideoQuality
+	}
+	if config.VideoQuality == "" {
+		config.VideoQuality = defaultVideoQuality
 	}
 	if config.Language != "en-US" && config.Language != "pt-BR" {
 		config.Language = defaults.Language

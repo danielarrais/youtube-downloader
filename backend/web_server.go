@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +31,14 @@ type addDownloadsRequest struct {
 
 type languageRequest struct {
 	Language string `json:"language"`
+}
+
+type deleteFileRequest struct {
+	DeleteFile bool `json:"delete_file"`
+}
+
+type deleteFilesRequest struct {
+	DeleteFiles bool `json:"delete_files"`
 }
 
 type apiError struct {
@@ -126,7 +135,12 @@ func (s *webServer) cancelDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *webServer) removeDownload(w http.ResponseWriter, r *http.Request) {
-	if err := s.app.RemoveDownload(r.PathValue("id"), true); err != nil {
+	request := deleteFileRequest{DeleteFile: true}
+	if err := decodeJSONOptional(r, &request); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.app.RemoveDownload(r.PathValue("id"), request.DeleteFile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			writeAPIError(w, http.StatusNotFound, errors.New("download not found"))
 			return
@@ -219,16 +233,26 @@ func (s *webServer) retryFailed(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *webServer) clearCompleted(w http.ResponseWriter, _ *http.Request) {
-	if err := s.app.ClearCompleted(true); err != nil {
+func (s *webServer) clearCompleted(w http.ResponseWriter, r *http.Request) {
+	request := deleteFilesRequest{DeleteFiles: true}
+	if err := decodeJSONOptional(r, &request); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.app.ClearCompleted(request.DeleteFiles); err != nil {
 		writeAPIError(w, http.StatusInternalServerError, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *webServer) clearAll(w http.ResponseWriter, _ *http.Request) {
-	if err := s.app.ClearAll(true); err != nil {
+func (s *webServer) clearAll(w http.ResponseWriter, r *http.Request) {
+	request := deleteFilesRequest{DeleteFiles: true}
+	if err := decodeJSONOptional(r, &request); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.app.ClearAll(request.DeleteFiles); err != nil {
 		writeAPIError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -305,6 +329,29 @@ func (s *webServer) downloadByID(id string) (DownloadItem, bool) {
 func decodeJSON(r *http.Request, destination any) error {
 	defer r.Body.Close()
 	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(destination); err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("invalid JSON: multiple values")
+	}
+	return nil
+}
+
+func decodeJSONOptional(r *http.Request, destination any) error {
+	if r == nil || r.Body == nil {
+		return nil
+	}
+	defer r.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		return fmt.Errorf("invalid JSON: %w", err)
+	}
+	if len(bytes.TrimSpace(data)) == 0 {
+		return nil
+	}
+	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(destination); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)

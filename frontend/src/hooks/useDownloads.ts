@@ -3,7 +3,18 @@ import { api } from '../services/api';
 import { DownloadItem, QueueStats, VideoDownloadRequest } from '../types';
 import { useTranslation } from './useTranslation';
 
-export function useDownloads() {
+interface DeleteConfirmationOptions {
+  title: string;
+  message: string;
+  includeDeleteFileOption: boolean;
+}
+
+interface DeleteConfirmationResult {
+  confirmed: boolean;
+  deleteFile: boolean;
+}
+
+export function useDownloads(confirmDelete: (options: DeleteConfirmationOptions) => Promise<DeleteConfirmationResult>) {
   const { t } = useTranslation();
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [stats, setStats] = useState<QueueStats>({
@@ -62,30 +73,36 @@ export function useDownloads() {
     }
   }, [refreshData]);
 
-  const shouldDeleteFiles = async (hasFiles: boolean, confirmation: string) => {
-    if (!hasFiles) return false;
-    if (!api.capabilities.nativeFolders) return true;
-    const config = await api.getConfig();
-    if (config.file_deletion === 'delete') return true;
-    if (config.file_deletion === 'keep') return false;
-    return window.confirm(confirmation);
-  };
-
   const removeDownload = async (item: DownloadItem) => {
-    const deleteFile = await shouldDeleteFiles(['completed', 'skipped'].includes(item.status), t.deleteFileConfirm);
-    await api.removeDownload(item.id, deleteFile);
+    const result = await confirmDelete({
+      title: t.removeItemTitle,
+      message: t.removeItemMessage,
+      includeDeleteFileOption: ['completed', 'skipped'].includes(item.status),
+    });
+    if (!result.confirmed) return;
+    await api.removeDownload(item.id, result.deleteFile);
     await refreshData();
   };
 
   const clearCompleted = async () => {
-    const deleteFiles = await shouldDeleteFiles(downloads.some(item => ['completed', 'skipped'].includes(item.status)), t.deleteFilesConfirm);
-    await api.clearCompleted(deleteFiles);
+    const result = await confirmDelete({
+      title: t.clearCompletedTitle,
+      message: t.clearCompletedMessage,
+      includeDeleteFileOption: downloads.some(item => ['completed', 'skipped'].includes(item.status)),
+    });
+    if (!result.confirmed) return;
+    await api.clearCompleted(result.deleteFile);
     await refreshData();
   };
 
   const clearAll = async () => {
-    const deleteFiles = await shouldDeleteFiles(downloads.some(item => ['completed', 'skipped'].includes(item.status)), t.deleteFilesConfirm);
-    await api.clearAll(deleteFiles);
+    const result = await confirmDelete({
+      title: t.clearAllTitle,
+      message: t.clearAllMessage,
+      includeDeleteFileOption: downloads.some(item => ['completed', 'skipped'].includes(item.status)),
+    });
+    if (!result.confirmed) return;
+    await api.clearAll(result.deleteFile);
     await refreshData();
   };
 

@@ -9,7 +9,6 @@ interface SettingsModalProps {
   quality: string;
   videoContainer: 'mp4' | 'webm' | 'mkv';
   videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
-  fileDeletion: 'delete' | 'ask' | 'keep';
   language: Language;
   theme: Theme;
   onThemePreview: (theme: Theme) => void;
@@ -20,7 +19,6 @@ interface SettingsModalProps {
     quality: string,
     videoContainer: 'mp4' | 'webm' | 'mkv',
     videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p',
-    fileDeletion: 'delete' | 'ask' | 'keep',
     language: Language,
     theme: Theme,
   ) => Promise<void>;
@@ -32,7 +30,6 @@ export function SettingsModal({
   quality,
   videoContainer,
   videoQuality,
-  fileDeletion,
   language,
   theme,
   onThemePreview,
@@ -46,7 +43,6 @@ export function SettingsModal({
   const [selectedQuality, setSelectedQuality] = useState(quality);
   const [selectedVideoContainer, setSelectedVideoContainer] = useState(videoContainer);
   const [selectedVideoQuality, setSelectedVideoQuality] = useState(videoQuality);
-  const [selectedFileDeletion, setSelectedFileDeletion] = useState(fileDeletion);
   const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [selectedTheme, setSelectedTheme] = useState(theme);
   const [saving, setSaving] = useState(false);
@@ -84,7 +80,6 @@ export function SettingsModal({
         selectedQuality,
         selectedVideoContainer,
         selectedVideoQuality,
-        selectedFileDeletion,
         selectedLanguage,
         selectedTheme,
       );
@@ -165,21 +160,6 @@ export function SettingsModal({
               <option value="mkv">MKV</option>
             </select>
           </div>
-
-          {canChooseFolder && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">{t.fileDeletion}</label>
-              <select
-                value={selectedFileDeletion}
-                onChange={(event) => setSelectedFileDeletion(event.target.value as typeof selectedFileDeletion)}
-                className="app-select w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              >
-                <option value="delete">{t.fileDeletionDelete}</option>
-                <option value="ask">{t.fileDeletionAsk}</option>
-                <option value="keep">{t.fileDeletionKeep}</option>
-              </select>
-            </div>
-          )}
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-slate-700 dark:text-gray-300">{t.videoQuality}</label>

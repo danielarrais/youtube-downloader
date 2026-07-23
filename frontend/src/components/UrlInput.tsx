@@ -219,7 +219,6 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
     newQuality: string,
     newVideoContainer: VideoContainer,
     newVideoQuality: VideoQuality,
-    newFileDeletion: Config['file_deletion'],
     newLanguage: 'pt-BR' | 'en-US',
     newTheme: Config['theme'],
   ) => {
@@ -228,7 +227,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
       quality: newQuality,
       video_container: newVideoContainer,
       video_quality: newVideoQuality,
-      file_deletion: newFileDeletion,
+      file_deletion: fileDeletion,
       language: newLanguage,
       theme: newTheme,
     });
@@ -236,7 +235,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
     setQuality(config?.quality || newQuality);
     setVideoContainer(config?.video_container || newVideoContainer);
     setVideoQuality(config?.video_quality || newVideoQuality);
-    setFileDeletion(config?.file_deletion || newFileDeletion);
+    setFileDeletion(config?.file_deletion || fileDeletion);
     setLanguage((config?.language || newLanguage) as 'pt-BR' | 'en-US');
     setTheme(config?.theme || newTheme);
     setThemeBeforeSettings(null);
@@ -418,7 +417,6 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
           quality={quality}
           videoContainer={videoContainer}
           videoQuality={videoQuality}
-          fileDeletion={fileDeletion}
           language={language as 'pt-BR' | 'en-US'}
           theme={theme}
           onThemePreview={setTheme}

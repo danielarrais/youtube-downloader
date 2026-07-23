@@ -1,14 +1,26 @@
 import { useState } from 'react';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { Header } from './components/Header';
 import { UrlInput } from './components/UrlInput';
 import { DownloadQueue } from './components/DownloadQueue';
 import { useDownloads } from './hooks/useDownloads';
+import { useTranslation } from './hooks/useTranslation';
 
 type QueueFilter = 'downloading' | 'pending' | 'completed' | 'failed' | null;
 
+interface DeleteConfirmState {
+  title: string;
+  message: string;
+  includeDeleteFileOption: boolean;
+  deleteFile: boolean;
+  resolve: (value: { confirmed: boolean; deleteFile: boolean }) => void;
+}
+
 function App() {
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<QueueFilter>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null);
   const {
     downloads,
     stats,
@@ -23,7 +35,13 @@ function App() {
     pauseQueue,
     resumeQueue,
     clearAll,
-  } = useDownloads();
+  } = useDownloads((options) => new Promise(resolve => {
+    setDeleteConfirm({
+      ...options,
+      deleteFile: false,
+      resolve,
+    });
+  }));
 
   const filteredDownloads = downloads.filter(item => {
     switch (activeFilter) {
@@ -71,6 +89,27 @@ function App() {
           onClearAll={clearAll}
         />
       </main>
+
+      {deleteConfirm && (
+        <DeleteConfirmModal
+          title={deleteConfirm.title}
+          message={deleteConfirm.message}
+          confirmLabel={t.confirmDelete}
+          cancelLabel={t.close}
+          includeDeleteFileOption={deleteConfirm.includeDeleteFileOption}
+          deleteFile={deleteConfirm.deleteFile}
+          deleteFileLabel={t.removeFromDisk}
+          onToggleDeleteFile={(value) => setDeleteConfirm(current => current ? { ...current, deleteFile: value } : null)}
+          onCancel={() => {
+            deleteConfirm.resolve({ confirmed: false, deleteFile: false });
+            setDeleteConfirm(null);
+          }}
+          onConfirm={() => {
+            deleteConfirm.resolve({ confirmed: true, deleteFile: deleteConfirm.deleteFile });
+            setDeleteConfirm(null);
+          }}
+        />
+      )}
     </div>
   );
 }

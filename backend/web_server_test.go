@@ -114,6 +114,27 @@ func TestWebRejectsInvalidQuality(t *testing.T) {
 	}
 }
 
+func TestWebRemoveDownloadRespectsDeleteFileFlag(t *testing.T) {
+	app := newWebTestApp(t)
+	path := filepath.Join(app.config.DownloadDir, "song.mp3")
+	if err := os.WriteFile(path, []byte("mp3-data"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: path}
+	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
+	request := httptest.NewRequest(http.MethodDelete, "/api/downloads/completed", strings.NewReader(`{"delete_file":false}`))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("expected file to remain on disk: %v", err)
+	}
+}
+
 func TestWebServesCompletedDownload(t *testing.T) {
 	app := newWebTestApp(t)
 	path := filepath.Join(app.config.DownloadDir, "song.mp3")

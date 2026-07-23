@@ -58,6 +58,14 @@ export interface Translations {
   downloadFile: string;
   downloadVideoFile: string;
   deleteItem: string;
+  removeItemTitle: string;
+  removeItemMessage: string;
+  clearCompletedTitle: string;
+  clearCompletedMessage: string;
+  clearAllTitle: string;
+  clearAllMessage: string;
+  removeFromDisk: string;
+  confirmDelete: string;
   deleteFileConfirm: string;
   deleteFilesConfirm: string;
 
@@ -126,6 +134,14 @@ export const translations: Record<Language, Translations> = {
     downloadFile: 'Baixar MP3',
     downloadVideoFile: 'Baixar vídeo',
     deleteItem: 'Excluir item',
+    removeItemTitle: 'Remover download',
+    removeItemMessage: 'Deseja remover este download da lista?',
+    clearCompletedTitle: 'Remover concluídos',
+    clearCompletedMessage: 'Deseja remover todos os downloads concluídos da lista?',
+    clearAllTitle: 'Remover todos os downloads',
+    clearAllMessage: 'Deseja remover todos os downloads da lista?',
+    removeFromDisk: 'Também remover o arquivo do disco',
+    confirmDelete: 'Remover',
     deleteFileConfirm: 'Também apagar o arquivo deste download do disco?',
     deleteFilesConfirm: 'Também apagar os arquivos concluídos do disco?',
     status: {
@@ -190,6 +206,14 @@ export const translations: Record<Language, Translations> = {
     downloadFile: 'Download MP3',
     downloadVideoFile: 'Download video',
     deleteItem: 'Delete item',
+    removeItemTitle: 'Remove download',
+    removeItemMessage: 'Do you want to remove this download from the list?',
+    clearCompletedTitle: 'Remove completed',
+    clearCompletedMessage: 'Do you want to remove all completed downloads from the list?',
+    clearAllTitle: 'Remove all downloads',
+    clearAllMessage: 'Do you want to remove all downloads from the list?',
+    removeFromDisk: 'Also remove the file from disk',
+    confirmDelete: 'Remove',
     deleteFileConfirm: 'Also delete this download file from disk?',
     deleteFilesConfirm: 'Also delete completed files from disk?',
     status: {

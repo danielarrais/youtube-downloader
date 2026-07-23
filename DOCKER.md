@@ -54,6 +54,23 @@ docker compose up -d
 - `/downloads`: This is where your downloaded MP3 files will be stored.
 - `/data`: Used to persist application configuration and the download queue.
 
+If you prefer to keep settings, queue, and cache in a host folder instead of a
+named Docker volume, mount `/data` directly:
+
+```yaml
+services:
+  youtube-mp3-downloader:
+    image: danielarrais/youtube-mp3-downloader:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app-data:/data
+      - ./downloads:/downloads
+```
+
+The `./app-data` directory will contain files such as `config.json`, `queue.json`,
+and the temporary cache.
+
 ## Source Code
 
 For more information, visit the [GitHub Repository](https://github.com/danielarrais/best-youtube-mp3-downloader).

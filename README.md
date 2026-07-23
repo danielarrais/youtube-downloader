@@ -118,7 +118,8 @@ Open `http://localhost:8080`. Completed MP3 files can be downloaded through the
 browser and are also stored in the local `downloads/` directory.
 
 The `.env` file can override the image, tag, published port, and local download
-directory:
+directory. The application settings and persisted queue are stored separately in
+the `/data` volume:
 
 | Compose variable | Default | Description |
 | --- | --- | --- |
@@ -126,6 +127,18 @@ directory:
 | `DOCKER_TAG` | `latest` | Image tag, for example `1.0.16`. |
 | `HOST_PORT` | `8080` | Port published on the host. |
 | `DOWNLOADS_PATH` | `./downloads` | Host directory that receives completed MP3 files. |
+
+To store settings, queue, and cache in a host directory instead of a named Docker
+volume, replace the `/data` mount in `compose.yaml`:
+
+```yaml
+volumes:
+  - ./app-data:/data
+  - ${DOWNLOADS_PATH:-./downloads}:/downloads
+```
+
+This host directory will then contain files such as `config.json`, `queue.json`,
+and the application cache.
 
 To build the image from the local source code:
 
@@ -187,7 +200,7 @@ container, keep the default environment variables and use, for example,
 | Container path | Contents | Recommendation |
 | --- | --- | --- |
 | `/data` | `config.json`, `queue.json`, and the working cache. | Persistent Docker volume. |
-| `/downloads` | Completed MP3 files. | Bind mount to a host directory. |
+| `/downloads` | Completed audio and video files. | Host directory bind mount. |
 
 Removing the container does not delete this data. `docker compose down -v`
 also removes the data volume and should only be used when the queue and

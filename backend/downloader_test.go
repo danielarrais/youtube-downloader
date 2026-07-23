@@ -111,7 +111,16 @@ func TestFormatYouTubeUnavailableError(t *testing.T) {
 	}
 
 	message := FormatYouTubeError(err, "pt-BR")
-	if message != "O YouTube informou que este vídeo está indisponível. Ele pode ter sido removido, tornado privado ou bloqueado para esta região." {
+	if message != "Vídeo indisponível." {
+		t.Fatalf("unexpected message: %q", message)
+	}
+}
+
+func TestFormatYouTubeUnavailableErrorInPortuguese(t *testing.T) {
+	err := fmt.Errorf("cannot playback and download, status: ERROR, reason: Vídeo indisponível")
+
+	message := FormatYouTubeError(err, "pt-BR")
+	if message != "Vídeo indisponível." {
 		t.Fatalf("unexpected message: %q", message)
 	}
 }

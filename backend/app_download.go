@@ -81,20 +81,27 @@ func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
 			a.cleanupInterruptedDownload(item.ID, "")
 			return
 		}
-		if !a.setActiveItemStatus(item.ID, StatusSkipped) {
-			return
-		}
-		a.mu.Lock()
-		if !a.isActiveItemLocked(item.ID) {
+		if !a.shouldSkipExistingOutput(item, outputPath) {
+			if err := os.Remove(outputPath); err != nil {
+				a.updateError(item.ID, FormatOperationError("finalize", err, a.currentLanguage()))
+				return
+			}
+		} else {
+			if !a.setActiveItemStatus(item.ID, StatusSkipped) {
+				return
+			}
+			a.mu.Lock()
+			if !a.isActiveItemLocked(item.ID) {
+				a.mu.Unlock()
+				return
+			}
+			item.FilePath = outputPath
+			item.FileSize = fileInfo.Size()
 			a.mu.Unlock()
+			a.persistQueue()
+			a.emitItemUpdate(item.ID)
 			return
 		}
-		item.FilePath = outputPath
-		item.FileSize = fileInfo.Size()
-		a.mu.Unlock()
-		a.persistQueue()
-		a.emitItemUpdate(item.ID)
-		return
 	} else if !os.IsNotExist(err) {
 		if coverPath != "" {
 			os.Remove(coverPath)
@@ -213,16 +220,23 @@ func (a *App) processVideoDownload(ctx context.Context, item *DownloadItem, sess
 	}
 	outputPath := a.resolveOutputPath(item, video.ID, filepath.Join(downloadDir, name+"."+format.Extension))
 	if fileInfo, err := os.Stat(outputPath); err == nil {
-		if !a.setActiveItemStatus(item.ID, StatusSkipped) {
+		if !a.shouldSkipExistingOutput(item, outputPath) {
+			if err := os.Remove(outputPath); err != nil {
+				a.updateError(item.ID, FormatOperationError("finalize", err, a.currentLanguage()))
+				return
+			}
+		} else {
+			if !a.setActiveItemStatus(item.ID, StatusSkipped) {
+				return
+			}
+			a.mu.Lock()
+			item.FilePath = outputPath
+			item.FileSize = fileInfo.Size()
+			a.mu.Unlock()
+			a.persistQueue()
+			a.emitItemUpdate(item.ID)
 			return
 		}
-		a.mu.Lock()
-		item.FilePath = outputPath
-		item.FileSize = fileInfo.Size()
-		a.mu.Unlock()
-		a.persistQueue()
-		a.emitItemUpdate(item.ID)
-		return
 	} else if !os.IsNotExist(err) {
 		a.updateError(item.ID, FormatOperationError("finalize", err, a.currentLanguage()))
 		return
@@ -386,4 +400,37 @@ func (a *App) resolveOutputPath(item *DownloadItem, videoID, basePath string) st
 		}
 	}
 	return basePath
+}
+
+func (a *App) shouldSkipExistingOutput(item *DownloadItem, outputPath string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	for _, queuedItem := range a.items {
+		if queuedItem.ID == item.ID || queuedItem.FilePath != outputPath {
+			continue
+		}
+		if queuedItem.URL != item.URL {
+			return true
+		}
+		if item.MediaType != queuedItem.MediaType {
+			return false
+		}
+		if item.MediaType == MediaTypeVideo {
+			return videoFormatsMatch(item.VideoFormat, queuedItem.VideoFormat)
+		}
+		return item.Quality == queuedItem.Quality
+	}
+
+	return true
+}
+
+func videoFormatsMatch(left, right *VideoFormat) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return left.VideoItag == right.VideoItag &&
+		left.AudioItag == right.AudioItag &&
+		left.Extension == right.Extension &&
+		left.Resolution == right.Resolution
 }

@@ -235,7 +235,7 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	app := newWebTestApp(t)
 	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
 	request := httptest.NewRequest(http.MethodPut, "/api/config", strings.NewReader(
-		`{"download_dir":"/tmp/other","quality":"320k","video_container":"webm","video_quality":"720p","file_deletion":"keep","language":"en-US"}`,
+		`{"download_dir":"/tmp/other","quality":"320k","video_container":"webm","video_quality":"720p","file_deletion":"keep","language":"en-US","theme":"light"}`,
 	))
 	response := httptest.NewRecorder()
 
@@ -257,6 +257,9 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	if config.VideoContainer != "webm" || config.VideoQuality != "720p" || config.FileDeletion != FileDeletionKeep {
 		t.Fatalf("video preferences = %#v", config)
 	}
+	if config.Theme != "light" {
+		t.Fatalf("theme = %q", config.Theme)
+	}
 }
 
 func newWebTestApp(t *testing.T) *App {
@@ -274,6 +277,7 @@ func newWebTestApp(t *testing.T) *App {
 		VideoQuality:   defaultVideoQuality,
 		FileDeletion:   FileDeletionAsk,
 		Language:       "pt-BR",
+		Theme:          defaultTheme,
 	}
 	return app
 }

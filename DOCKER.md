@@ -1,4 +1,4 @@
-# YouTube MP3 Downloader (Web Version)
+# Youtube Dowloader (Web Version)
 
 Desktop and web application built with Go and React for downloading YouTube videos and playlists as MP3 files. This Docker image provides the **Web Version** of the application.
 

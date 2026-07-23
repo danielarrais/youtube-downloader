@@ -2,15 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  @apply bg-slate-100 text-slate-900;
+}
+
+html.dark {
+  @apply bg-gray-900 text-gray-100;
+}
+
 body {
+  @apply m-0 min-h-screen bg-slate-100 text-slate-900 transition-colors;
+}
+
+html.dark body {
   @apply bg-gray-900 text-gray-100;
 }
 
 .app-select {
+  color-scheme: light;
+}
+
+html.dark .app-select {
   color-scheme: dark;
 }
 
 .app-select option {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.dark .app-select option {
   background-color: #374151;
   color: #ffffff;
 }

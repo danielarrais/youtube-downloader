@@ -13,7 +13,7 @@ const statusColors: Record<DownloadStatus, string> = {
   completed: 'bg-green-500',
   failed: 'bg-red-500',
   cancelled: 'bg-gray-500',
-  skipped: 'bg-purple-500'
+  skipped: 'bg-green-500'
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
@@ -22,7 +22,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   const label = t.status[status];
 
   return (
-    <span className={`${color} text-white text-xs px-2 py-1 rounded-full whitespace-nowrap`}>
+    <span className={`${color} inline-flex rounded-full px-2 py-1 text-xs text-white whitespace-nowrap`}>
       {label}
     </span>
   );

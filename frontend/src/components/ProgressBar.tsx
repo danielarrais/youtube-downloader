@@ -23,7 +23,7 @@ export function ProgressBar({ percent, status }: ProgressBarProps) {
   };
 
   return (
-    <div className="w-full bg-gray-700 rounded-full h-2">
+    <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-gray-700">
       <div
         className={`${getColor()} h-2 rounded-full transition-all duration-300`}
         style={{ width: `${percent}%` }}

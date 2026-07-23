@@ -20,6 +20,9 @@ export interface Translations {
   fileDeletionDelete: string;
   fileDeletionAsk: string;
   fileDeletionKeep: string;
+  theme: string;
+  themeDark: string;
+  themeLight: string;
   addToQueue: string;
   settings: string;
   downloadFolder: string;
@@ -39,6 +42,7 @@ export interface Translations {
 
   // DownloadQueue
   emptyQueue: string;
+  filteredDownloadsEmpty: string;
   cancelAll: string;
   pauseQueue: string;
   resumeQueue: string;
@@ -69,13 +73,13 @@ export interface Translations {
 
 export const translations: Record<Language, Translations> = {
   'pt-BR': {
-    title: 'Youtube MP3 Dowloader',
+    title: 'Youtube Dowloader',
     total: 'Total',
     downloading: 'Baixando',
     pending: 'Pendente',
     completed: 'Concluído',
     failed: 'Falhas',
-    urlsLabel: 'URLs do YouTube (uma por linha)',
+    urlsLabel: 'Links do YouTube e playlists',
     urlsHint: 'Aceita vídeos individuais ou playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... ou playlist?list=...',
     quality: 'Qualidade de áudio',
@@ -85,6 +89,9 @@ export const translations: Record<Language, Translations> = {
     fileDeletionDelete: 'Apagar do disco',
     fileDeletionAsk: 'Perguntar',
     fileDeletionKeep: 'Manter no disco',
+    theme: 'Tema',
+    themeDark: 'Escuro',
+    themeLight: 'Claro',
     addToQueue: 'Adicionar à Fila',
     settings: 'Configurações',
     downloadFolder: 'Pasta de download',
@@ -102,6 +109,7 @@ export const translations: Record<Language, Translations> = {
     close: 'Cancelar',
     addSelected: 'Adicionar selecionados',
     emptyQueue: 'Nenhum download na fila. Adicione URLs acima para começar.',
+    filteredDownloadsEmpty: 'Nenhum item com este status.',
     cancelAll: 'Cancelar todos',
     pauseQueue: 'Pausar',
     resumeQueue: 'Continuar',
@@ -122,17 +130,17 @@ export const translations: Record<Language, Translations> = {
       completed: 'Concluído',
       failed: 'Falhou',
       cancelled: 'Cancelado',
-      skipped: 'Já existe',
+      skipped: 'Concluído',
     },
   },
   'en-US': {
-    title: 'Youtube MP3 Dowloader',
+    title: 'Youtube Dowloader',
     total: 'Total',
     downloading: 'Downloading',
     pending: 'Pending',
     completed: 'Completed',
     failed: 'Failed',
-    urlsLabel: 'YouTube URLs (one per line)',
+    urlsLabel: 'YouTube links and playlists',
     urlsHint: 'Supports individual videos or playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... or playlist?list=...',
     quality: 'Audio quality',
@@ -142,6 +150,9 @@ export const translations: Record<Language, Translations> = {
     fileDeletionDelete: 'Delete from disk',
     fileDeletionAsk: 'Ask',
     fileDeletionKeep: 'Keep on disk',
+    theme: 'Theme',
+    themeDark: 'Dark',
+    themeLight: 'Light',
     addToQueue: 'Add to Queue',
     settings: 'Settings',
     downloadFolder: 'Download folder',
@@ -159,6 +170,7 @@ export const translations: Record<Language, Translations> = {
     close: 'Cancel',
     addSelected: 'Add selected',
     emptyQueue: 'No downloads in queue. Add URLs above to start.',
+    filteredDownloadsEmpty: 'No items with this status.',
     cancelAll: 'Cancel all',
     pauseQueue: 'Pause',
     resumeQueue: 'Continue',
@@ -179,7 +191,7 @@ export const translations: Record<Language, Translations> = {
       completed: 'Completed',
       failed: 'Failed',
       cancelled: 'Cancelled',
-      skipped: 'Already exists',
+      skipped: 'Completed',
     },
   },
 };

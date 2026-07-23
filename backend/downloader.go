@@ -597,39 +597,57 @@ func isTransientYouTubeError(err error) bool {
 func FormatYouTubeError(err error, language string) string {
 	var status youtube.ErrUnexpectedStatusCode
 	if errors.As(err, &status) && status == http.StatusTooManyRequests {
-		if language == "en-US" {
-			return "YouTube temporarily limited this IP address (HTTP 429). Wait before trying again."
-		}
-		return "YouTube limitou temporariamente este IP (HTTP 429). Aguarde antes de tentar novamente."
+		return localizedMessage(language,
+			"YouTube limitou temporariamente este IP (HTTP 429). Aguarde antes de tentar novamente.",
+			"YouTube temporarily limited this IP address (HTTP 429). Wait before trying again.",
+		)
 	}
 
 	if errors.Is(err, youtube.ErrNotPlayableInEmbed) {
-		if language == "en-US" {
-			return "This video has an age or playback restriction that prevents downloading without signing in."
-		}
-		return "Este vídeo possui uma restrição de idade ou reprodução que impede o download sem login."
+		return localizedMessage(language,
+			"Este vídeo possui uma restrição de idade ou reprodução que impede o download sem login.",
+			"This video has an age or playback restriction that prevents downloading without signing in.",
+		)
 	}
 
 	if errors.Is(err, youtube.ErrVideoPrivate) {
-		if language == "en-US" {
-			return "This video is private and cannot be downloaded."
-		}
-		return "Este vídeo é privado e não pode ser baixado."
+		return localizedMessage(language,
+			"Este vídeo é privado e não pode ser baixado.",
+			"This video is private and cannot be downloaded.",
+		)
 	}
 
 	var playbackError *youtube.ErrPlayabiltyStatus
-	if errors.As(err, &playbackError) &&
-		strings.EqualFold(playbackError.Reason, "This video is unavailable") {
-		if language == "en-US" {
-			return "YouTube reported that this video is unavailable. It may have been removed, made private, or blocked in this region."
-		}
-		return "O YouTube informou que este vídeo está indisponível. Ele pode ter sido removido, tornado privado ou bloqueado para esta região."
+	if errors.As(err, &playbackError) && isUnavailablePlaybackReason(playbackError.Reason) {
+		return localizedMessage(language, "Vídeo indisponível.", "This video is unavailable.")
 	}
 
-	if language == "en-US" {
-		return "Error while querying YouTube: " + err.Error()
+	lowerError := strings.ToLower(err.Error())
+	if strings.Contains(lowerError, "this video is unavailable") ||
+		strings.Contains(lowerError, "vídeo indisponível") ||
+		strings.Contains(lowerError, "video unavailable") {
+		return localizedMessage(language, "Vídeo indisponível.", "This video is unavailable.")
 	}
-	return "Erro ao consultar o YouTube: " + err.Error()
+
+	return localizedPrefix(language, "Erro ao consultar o YouTube: ", "Error while querying YouTube: ") + err.Error()
+}
+
+func localizedMessage(language, portuguese, english string) string {
+	if language == "en-US" {
+		return english
+	}
+	return portuguese
+}
+
+func localizedPrefix(language, portuguese, english string) string {
+	return localizedMessage(language, portuguese, english)
+}
+
+func isUnavailablePlaybackReason(reason string) bool {
+	lowerReason := strings.ToLower(strings.TrimSpace(reason))
+	return lowerReason == "this video is unavailable" ||
+		lowerReason == "vídeo indisponível" ||
+		lowerReason == "video unavailable"
 }
 
 func TranslateStoredYouTubeError(message, language string) string {
@@ -638,40 +656,27 @@ func TranslateStoredYouTubeError(message, language string) string {
 	case strings.Contains(lowerMessage, "can't bypass age restriction"),
 		strings.Contains(lowerMessage, "restrição de idade"),
 		strings.Contains(lowerMessage, "age or playback restriction"):
-		if language == "en-US" {
-			return "This video has an age or playback restriction that prevents downloading without signing in."
-		}
-		return "Este vídeo possui uma restrição de idade ou reprodução que impede o download sem login."
+		return localizedMessage(language,
+			"Este vídeo possui uma restrição de idade ou reprodução que impede o download sem login.",
+			"This video has an age or playback restriction that prevents downloading without signing in.",
+		)
 	case strings.Contains(lowerMessage, "this video is unavailable"),
 		strings.Contains(lowerMessage, "vídeo está indisponível"),
 		strings.Contains(lowerMessage, "video is unavailable"):
-		if language == "en-US" {
-			return "YouTube reported that this video is unavailable. It may have been removed, made private, or blocked in this region."
-		}
-		return "O YouTube informou que este vídeo está indisponível. Ele pode ter sido removido, tornado privado ou bloqueado para esta região."
+		return localizedMessage(language, "Vídeo indisponível.", "This video is unavailable.")
 	default:
 		return message
 	}
 }
 
 func FormatOperationError(operation string, err error, language string) string {
-	if language == "en-US" {
-		switch operation {
-		case "conversion":
-			return "Conversion error: " + err.Error()
-		case "finalize":
-			return "Error while finalizing the file: " + err.Error()
-		default:
-			return "Download error: " + err.Error()
-		}
-	}
 	switch operation {
 	case "conversion":
-		return "Erro na conversão: " + err.Error()
+		return localizedPrefix(language, "Erro na conversão: ", "Conversion error: ") + err.Error()
 	case "finalize":
-		return "Erro ao finalizar o arquivo: " + err.Error()
+		return localizedPrefix(language, "Erro ao finalizar o arquivo: ", "Error while finalizing the file: ") + err.Error()
 	default:
-		return "Erro no download: " + err.Error()
+		return localizedPrefix(language, "Erro no download: ", "Download error: ") + err.Error()
 	}
 }
 

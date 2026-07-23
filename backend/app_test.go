@@ -131,6 +131,28 @@ func TestResolveOutputPathAddsVideoIDForQueueCollision(t *testing.T) {
 	}
 }
 
+func TestShouldSkipExistingOutputForSameAudioQuality(t *testing.T) {
+	app := newPersistenceTestApp(t)
+	path := filepath.Join(t.TempDir(), "song.mp3")
+	app.items["completed"] = &DownloadItem{ID: "completed", URL: "https://youtu.be/video", FilePath: path, MediaType: MediaTypeAudio, Quality: "192k"}
+	current := &DownloadItem{ID: "current", URL: "https://youtu.be/video", FilePath: path, MediaType: MediaTypeAudio, Quality: "192k"}
+
+	if !app.shouldSkipExistingOutput(current, path) {
+		t.Fatal("expected existing audio file to be skipped")
+	}
+}
+
+func TestShouldReplaceExistingOutputForDifferentAudioQuality(t *testing.T) {
+	app := newPersistenceTestApp(t)
+	path := filepath.Join(t.TempDir(), "song.mp3")
+	app.items["completed"] = &DownloadItem{ID: "completed", URL: "https://youtu.be/video", FilePath: path, MediaType: MediaTypeAudio, Quality: "192k"}
+	current := &DownloadItem{ID: "current", URL: "https://youtu.be/video", FilePath: path, MediaType: MediaTypeAudio, Quality: "320k"}
+
+	if app.shouldSkipExistingOutput(current, path) {
+		t.Fatal("expected existing audio file with different quality to be replaced")
+	}
+}
+
 func TestCleanupPartialFilesRemovesKnownMediaParts(t *testing.T) {
 	dir := t.TempDir()
 	partPath := filepath.Join(dir, "song.mp3.part")
@@ -240,7 +262,7 @@ func TestClearCompletedDeletesCompletedFiles(t *testing.T) {
 func TestSaveConfigDefaultsInvalidQuality(t *testing.T) {
 	app := NewApp()
 	app.configPath = filepath.Join(t.TempDir(), "config.json")
-	app.config = Config{DownloadDir: t.TempDir(), Quality: "192k", Language: "pt-BR"}
+	app.config = Config{DownloadDir: t.TempDir(), Quality: "192k", Language: "pt-BR", Theme: defaultTheme}
 	config, err := app.SaveConfig(Config{
 		DownloadDir: t.TempDir(),
 		Quality:     "invalid",
@@ -251,5 +273,8 @@ func TestSaveConfigDefaultsInvalidQuality(t *testing.T) {
 
 	if config.Quality != "192k" {
 		t.Fatalf("SaveConfig() quality = %q, want %q", config.Quality, "192k")
+	}
+	if config.Theme != defaultTheme {
+		t.Fatalf("SaveConfig() theme = %q, want %q", config.Theme, defaultTheme)
 	}
 }

@@ -1,4 +1,4 @@
-# YouTube MP3 Downloader
+# Youtube Dowloader
 
 Desktop application built with Go, Wails, and React for downloading YouTube
 videos and playlists as MP3 files or their available video streams. The queue,

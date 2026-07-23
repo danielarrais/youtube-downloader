@@ -7,6 +7,7 @@ export namespace main {
 	    video_quality: string;
 	    file_deletion: string;
 	    language: string;
+	    theme: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -20,6 +21,7 @@ export namespace main {
 	        this.video_quality = source["video_quality"];
 	        this.file_deletion = source["file_deletion"];
 	        this.language = source["language"];
+	        this.theme = source["theme"];
 	    }
 	}
 	export class DownloadProgress {

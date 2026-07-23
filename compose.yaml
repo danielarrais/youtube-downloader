@@ -4,7 +4,7 @@ services:
     build:
       context: .
     ports:
-      - "${HOST_PORT:-8080}:8080"
+      - "${HOST_PORT:-8081}:8080"
     volumes:
       - youtube-mp3-data:/data
       - ${DOWNLOADS_PATH:-./downloads}:/downloads

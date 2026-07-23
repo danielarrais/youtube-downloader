@@ -14,6 +14,7 @@ func TestConfigFileRoundTrip(t *testing.T) {
 		VideoQuality:   "720p",
 		FileDeletion:   FileDeletionKeep,
 		Language:       "en-US",
+		Theme:          defaultTheme,
 	}
 	if err := saveConfigFile(path, want); err != nil {
 		t.Fatal(err)
@@ -35,6 +36,7 @@ func TestNormalizeConfigUsesDefaults(t *testing.T) {
 		VideoQuality:   "1080p",
 		FileDeletion:   FileDeletionAsk,
 		Language:       "pt-BR",
+		Theme:          defaultTheme,
 	}
 	got := normalizeConfig(Config{
 		Quality:        "invalid",
@@ -42,6 +44,7 @@ func TestNormalizeConfigUsesDefaults(t *testing.T) {
 		VideoQuality:   "invalid",
 		FileDeletion:   "invalid",
 		Language:       "invalid",
+		Theme:          "invalid",
 	}, defaults)
 	if got != defaults {
 		t.Fatalf("normalizeConfig() = %#v, want %#v", got, defaults)

@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { api } from '../services/api';
 import { DownloadItem, QueueStats, VideoDownloadRequest } from '../types';
+import { useTranslation } from './useTranslation';
 
 export function useDownloads() {
+  const { t } = useTranslation();
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [stats, setStats] = useState<QueueStats>({
     total: 0, pending: 0, downloading: 0, completed: 0, failed: 0, paused: false
@@ -60,15 +62,43 @@ export function useDownloads() {
     }
   }, [refreshData]);
 
+  const shouldDeleteFiles = async (hasFiles: boolean, confirmation: string) => {
+    if (!hasFiles) return false;
+    if (!api.capabilities.nativeFolders) return true;
+    const config = await api.getConfig();
+    if (config.file_deletion === 'delete') return true;
+    if (config.file_deletion === 'keep') return false;
+    return window.confirm(confirmation);
+  };
+
+  const removeDownload = async (item: DownloadItem) => {
+    const deleteFile = await shouldDeleteFiles(['completed', 'skipped'].includes(item.status), t.deleteFileConfirm);
+    await api.removeDownload(item.id, deleteFile);
+    await refreshData();
+  };
+
+  const clearCompleted = async () => {
+    const deleteFiles = await shouldDeleteFiles(downloads.some(item => ['completed', 'skipped'].includes(item.status)), t.deleteFilesConfirm);
+    await api.clearCompleted(deleteFiles);
+    await refreshData();
+  };
+
+  const clearAll = async () => {
+    const deleteFiles = await shouldDeleteFiles(downloads.some(item => ['completed', 'skipped'].includes(item.status)), t.deleteFilesConfirm);
+    await api.clearAll(deleteFiles);
+    await refreshData();
+  };
+
   return {
     downloads, stats, addDownloads, addVideoDownloads,
     cancelDownload: async (id: string) => { await api.cancelDownload(id); refreshData(); },
+    removeDownload,
     retryDownload: async (id: string) => { await api.retryDownload(id); refreshData(); },
     retryFailed: async () => { await api.retryFailed(); refreshData(); },
-    clearCompleted: async () => { await api.clearCompleted(); refreshData(); },
+    clearCompleted,
     cancelAll: async () => { await api.cancelAll(); refreshData(); },
     pauseQueue: async () => { await api.pauseQueue(); refreshData(); },
     resumeQueue: async () => { await api.resumeQueue(); refreshData(); },
-    clearAll: async () => { await api.clearAll(); refreshData(); }
+    clearAll
   };
 }

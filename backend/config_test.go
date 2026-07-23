@@ -12,6 +12,7 @@ func TestConfigFileRoundTrip(t *testing.T) {
 		Quality:        "320k",
 		VideoContainer: "webm",
 		VideoQuality:   "720p",
+		FileDeletion:   FileDeletionKeep,
 		Language:       "en-US",
 	}
 	if err := saveConfigFile(path, want); err != nil {
@@ -32,12 +33,14 @@ func TestNormalizeConfigUsesDefaults(t *testing.T) {
 		Quality:        "192k",
 		VideoContainer: "mp4",
 		VideoQuality:   "1080p",
+		FileDeletion:   FileDeletionAsk,
 		Language:       "pt-BR",
 	}
 	got := normalizeConfig(Config{
 		Quality:        "invalid",
 		VideoContainer: "invalid",
 		VideoQuality:   "invalid",
+		FileDeletion:   "invalid",
 		Language:       "invalid",
 	}, defaults)
 	if got != defaults {

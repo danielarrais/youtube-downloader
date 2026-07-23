@@ -23,14 +23,15 @@ export interface AppAPI {
   getDownloads(): Promise<DownloadItem[]>;
   getStats(): Promise<QueueStats>;
   cancelDownload(id: string): Promise<void>;
+  removeDownload(id: string, deleteFile: boolean): Promise<void>;
   retryDownload(id: string): Promise<DownloadItem>;
   retryFailed(): Promise<void>;
   getPlaylistInfo(url: string): Promise<PlaylistInfo>;
-  clearCompleted(): Promise<void>;
+  clearCompleted(deleteFiles: boolean): Promise<void>;
   cancelAll(): Promise<void>;
   pauseQueue(): Promise<void>;
   resumeQueue(): Promise<void>;
-  clearAll(): Promise<void>;
+  clearAll(deleteFiles: boolean): Promise<void>;
   getConfig(): Promise<Config>;
   selectFolder(): Promise<string>;
   saveConfig(config: Config): Promise<Config>;

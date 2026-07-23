@@ -427,20 +427,63 @@ func (a *App) ResumeQueue() {
 func (a *App) GetPlaylistInfo(url string) (PlaylistInfo, error) {
 	return FetchPlaylistInfo(url)
 }
-func (a *App) ClearCompleted() {
+func (a *App) RemoveDownload(id string, deleteFile bool) error {
 	a.mu.Lock()
-	newOrder := make([]string, 0)
-	for _, id := range a.queueOrder {
-		if a.items[id].Status != StatusCompleted && a.items[id].Status != StatusSkipped {
-			newOrder = append(newOrder, id)
-		} else {
-			delete(a.items, id)
+	item, ok := a.items[id]
+	if !ok {
+		a.mu.Unlock()
+		return os.ErrNotExist
+	}
+	itemCopy := *item
+	downloadDir := a.config.DownloadDir
+	stop := context.CancelFunc(nil)
+	if a.activeID == id {
+		item.Status = StatusCancelled
+		stop = a.activeStop
+	}
+	a.mu.Unlock()
+
+	if stop != nil {
+		stop()
+	}
+	if deleteFile && (itemCopy.Status == StatusCompleted || itemCopy.Status == StatusSkipped) {
+		if err := removeDownloadFile(downloadDir, itemCopy.FilePath); err != nil {
+			return err
 		}
 	}
-	a.queueOrder = newOrder
+	for _, suffix := range []string{".tmp", ".video.tmp", ".audio.tmp"} {
+		_ = os.Remove(filepath.Join(a.cacheDir, id+suffix))
+	}
+
+	a.mu.Lock()
+	if _, ok := a.items[id]; !ok {
+		a.mu.Unlock()
+		return os.ErrNotExist
+	}
+	delete(a.items, id)
+	for index, queuedID := range a.queueOrder {
+		if queuedID == id {
+			a.queueOrder = append(a.queueOrder[:index], a.queueOrder[index+1:]...)
+			break
+		}
+	}
 	a.mu.Unlock()
 	a.persistQueue()
 	a.emitStats()
+	return nil
+}
+
+func (a *App) ClearCompleted(deleteFiles bool) error {
+	items := a.GetDownloads()
+	for _, item := range items {
+		if item.Status != StatusCompleted && item.Status != StatusSkipped {
+			continue
+		}
+		if err := a.RemoveDownload(item.ID, deleteFiles); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 func (a *App) CancelAll() {
 	a.mu.Lock()
@@ -464,15 +507,12 @@ func (a *App) CancelAll() {
 	}
 	a.emitStats()
 }
-func (a *App) ClearAll() {
-	a.mu.Lock()
-	stop := a.activeStop
-	a.items = make(map[string]*DownloadItem)
-	a.queueOrder = make([]string, 0)
-	a.mu.Unlock()
-	if stop != nil {
-		stop()
+func (a *App) ClearAll(deleteFiles bool) error {
+	items := a.GetDownloads()
+	for _, item := range items {
+		if err := a.RemoveDownload(item.ID, deleteFiles); err != nil {
+			return err
+		}
 	}
-	a.persistQueue()
-	a.emitStats()
+	return nil
 }

@@ -10,6 +10,9 @@ import (
 const (
 	defaultVideoContainer = "mp4"
 	defaultVideoQuality   = "1080p"
+	FileDeletionDelete    = "delete"
+	FileDeletionAsk       = "ask"
+	FileDeletionKeep      = "keep"
 )
 
 type Config struct {
@@ -17,6 +20,7 @@ type Config struct {
 	Quality        string `json:"quality"`
 	VideoContainer string `json:"video_container"`
 	VideoQuality   string `json:"video_quality"`
+	FileDeletion   string `json:"file_deletion"`
 	Language       string `json:"language"`
 }
 
@@ -26,6 +30,7 @@ func defaultConfig(home string) Config {
 		Quality:        "192k",
 		VideoContainer: defaultVideoContainer,
 		VideoQuality:   defaultVideoQuality,
+		FileDeletion:   FileDeletionAsk,
 		Language:       "pt-BR",
 	}
 }
@@ -54,6 +59,14 @@ func normalizeConfig(config, defaults Config) Config {
 	}
 	if config.VideoQuality == "" {
 		config.VideoQuality = defaultVideoQuality
+	}
+	switch config.FileDeletion {
+	case FileDeletionDelete, FileDeletionAsk, FileDeletionKeep:
+	default:
+		config.FileDeletion = defaults.FileDeletion
+	}
+	if config.FileDeletion == "" {
+		config.FileDeletion = FileDeletionAsk
 	}
 	if config.Language != "en-US" && config.Language != "pt-BR" {
 		config.Language = defaults.Language

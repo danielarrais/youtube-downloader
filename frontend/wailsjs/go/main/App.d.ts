@@ -10,9 +10,9 @@ export function CancelAll():Promise<void>;
 
 export function CancelDownload(arg1:string):Promise<void>;
 
-export function ClearAll():Promise<void>;
+export function ClearAll(arg1:boolean):Promise<void>;
 
-export function ClearCompleted():Promise<void>;
+export function ClearCompleted(arg1:boolean):Promise<void>;
 
 export function GetConfig():Promise<main.Config>;
 
@@ -29,6 +29,8 @@ export function OpenDirectory(arg1:string):Promise<void>;
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function PauseQueue():Promise<void>;
+
+export function RemoveDownload(arg1:string,arg2:boolean):Promise<void>;
 
 export function ResumeQueue():Promise<void>;
 

@@ -143,6 +143,58 @@ func TestWebServesCompletedDownload(t *testing.T) {
 	}
 }
 
+func TestWebRemovesCompletedDownloadAndFile(t *testing.T) {
+	app := newWebTestApp(t)
+	path := filepath.Join(app.config.DownloadDir, "movie.mp4")
+	if err := os.WriteFile(path, []byte("video-data"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: path}
+	app.queueOrder = []string{"completed"}
+	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
+	request := httptest.NewRequest(http.MethodDelete, "/api/downloads/completed", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("download file was not removed: %v", err)
+	}
+	if len(app.GetDownloads()) != 0 {
+		t.Fatalf("queue still contains removed item: %#v", app.GetDownloads())
+	}
+}
+
+func TestWebClearCompletedDeletesFiles(t *testing.T) {
+	app := newWebTestApp(t)
+	path := filepath.Join(app.config.DownloadDir, "song.mp3")
+	if err := os.WriteFile(path, []byte("audio-data"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: path}
+	app.items["pending"] = &DownloadItem{ID: "pending", Status: StatusPending}
+	app.queueOrder = []string{"completed", "pending"}
+	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
+	request := httptest.NewRequest(http.MethodPost, "/api/queue/clear-completed", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("completed file was not removed: %v", err)
+	}
+	items := app.GetDownloads()
+	if len(items) != 1 || items[0].ID != "pending" {
+		t.Fatalf("remaining queue items = %#v", items)
+	}
+}
+
 func TestWebRejectsFilesOutsideDownloadDirectory(t *testing.T) {
 	app := newWebTestApp(t)
 	outsidePath := filepath.Join(t.TempDir(), "secret.mp3")
@@ -183,7 +235,7 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	app := newWebTestApp(t)
 	handler := newWebHandler(app, testAssets(), app.config.DownloadDir)
 	request := httptest.NewRequest(http.MethodPut, "/api/config", strings.NewReader(
-		`{"download_dir":"/tmp/other","quality":"320k","video_container":"webm","video_quality":"720p","language":"en-US"}`,
+		`{"download_dir":"/tmp/other","quality":"320k","video_container":"webm","video_quality":"720p","file_deletion":"keep","language":"en-US"}`,
 	))
 	response := httptest.NewRecorder()
 
@@ -202,7 +254,7 @@ func TestWebConfigKeepsServerDownloadDirectory(t *testing.T) {
 	if config.Quality != "320k" {
 		t.Fatalf("quality = %q", config.Quality)
 	}
-	if config.VideoContainer != "webm" || config.VideoQuality != "720p" {
+	if config.VideoContainer != "webm" || config.VideoQuality != "720p" || config.FileDeletion != FileDeletionKeep {
 		t.Fatalf("video preferences = %#v", config)
 	}
 }
@@ -220,6 +272,7 @@ func newWebTestApp(t *testing.T) *App {
 		Quality:        "192k",
 		VideoContainer: defaultVideoContainer,
 		VideoQuality:   defaultVideoQuality,
+		FileDeletion:   FileDeletionAsk,
 		Language:       "pt-BR",
 	}
 	return app

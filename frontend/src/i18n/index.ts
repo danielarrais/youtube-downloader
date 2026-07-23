@@ -16,6 +16,10 @@ export interface Translations {
   quality: string;
   videoFormat: string;
   videoQuality: string;
+  fileDeletion: string;
+  fileDeletionDelete: string;
+  fileDeletionAsk: string;
+  fileDeletionKeep: string;
   addToQueue: string;
   settings: string;
   downloadFolder: string;
@@ -46,6 +50,9 @@ export interface Translations {
   openFolder: string;
   downloadFile: string;
   downloadVideoFile: string;
+  deleteItem: string;
+  deleteFileConfirm: string;
+  deleteFilesConfirm: string;
 
   // StatusBadge
   status: {
@@ -71,9 +78,13 @@ export const translations: Record<Language, Translations> = {
     urlsLabel: 'URLs do YouTube (uma por linha)',
     urlsHint: 'Aceita vídeos individuais ou playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... ou playlist?list=...',
-    quality: 'Qualidade',
+    quality: 'Qualidade de áudio',
     videoFormat: 'Formato de vídeo padrão',
     videoQuality: 'Qualidade de vídeo alvo',
+    fileDeletion: 'Ao remover downloads',
+    fileDeletionDelete: 'Apagar do disco',
+    fileDeletionAsk: 'Perguntar',
+    fileDeletionKeep: 'Manter no disco',
     addToQueue: 'Adicionar à Fila',
     settings: 'Configurações',
     downloadFolder: 'Pasta de download',
@@ -100,6 +111,9 @@ export const translations: Record<Language, Translations> = {
     openFolder: 'Abrir na pasta',
     downloadFile: 'Baixar MP3',
     downloadVideoFile: 'Baixar vídeo',
+    deleteItem: 'Excluir item',
+    deleteFileConfirm: 'Também apagar o arquivo deste download do disco?',
+    deleteFilesConfirm: 'Também apagar os arquivos concluídos do disco?',
     status: {
       pending: 'Pendente',
       fetching_info: 'Obtendo info',
@@ -121,9 +135,13 @@ export const translations: Record<Language, Translations> = {
     urlsLabel: 'YouTube URLs (one per line)',
     urlsHint: 'Supports individual videos or playlists',
     urlsPlaceholder: 'https://www.youtube.com/watch?v=... or playlist?list=...',
-    quality: 'Quality',
+    quality: 'Audio quality',
     videoFormat: 'Default video format',
     videoQuality: 'Target video quality',
+    fileDeletion: 'When removing downloads',
+    fileDeletionDelete: 'Delete from disk',
+    fileDeletionAsk: 'Ask',
+    fileDeletionKeep: 'Keep on disk',
     addToQueue: 'Add to Queue',
     settings: 'Settings',
     downloadFolder: 'Download folder',
@@ -150,6 +168,9 @@ export const translations: Record<Language, Translations> = {
     openFolder: 'Open folder',
     downloadFile: 'Download MP3',
     downloadVideoFile: 'Download video',
+    deleteItem: 'Delete item',
+    deleteFileConfirm: 'Also delete this download file from disk?',
+    deleteFilesConfirm: 'Also delete completed files from disk?',
     status: {
       pending: 'Pending',
       fetching_info: 'Fetching info',

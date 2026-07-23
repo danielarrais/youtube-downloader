@@ -54,6 +54,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
   const [quality, setQuality] = useState('192k');
   const [videoContainer, setVideoContainer] = useState<VideoContainer>('mp4');
   const [videoQuality, setVideoQuality] = useState<VideoQuality>('1080p');
+  const [fileDeletion, setFileDeletion] = useState<Config['file_deletion']>('ask');
   const [mediaType, setMediaType] = useState<'audio' | 'video'>('audio');
   const [downloadDir, setDownloadDir] = useState('---');
   const [playlistStates, setPlaylistStates] = useState<PlaylistLoadState[] | null>(null);
@@ -70,6 +71,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
         setQuality(config.quality || '192k');
         setVideoContainer(config.video_container || 'mp4');
         setVideoQuality(config.video_quality || '1080p');
+        setFileDeletion(config.file_deletion || 'ask');
       }
     });
   }, []);
@@ -212,18 +214,21 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
     newQuality: string,
     newVideoContainer: VideoContainer,
     newVideoQuality: VideoQuality,
+    newFileDeletion: Config['file_deletion'],
   ) => {
     const config = await api.saveConfig({
       download_dir: newDownloadDir,
       quality: newQuality,
       video_container: newVideoContainer,
       video_quality: newVideoQuality,
+      file_deletion: newFileDeletion,
       language,
     });
     setDownloadDir(config?.download_dir || newDownloadDir);
     setQuality(config?.quality || newQuality);
     setVideoContainer(config?.video_container || newVideoContainer);
     setVideoQuality(config?.video_quality || newVideoQuality);
+    setFileDeletion(config?.file_deletion || newFileDeletion);
   };
 
   return (
@@ -233,17 +238,18 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
           <label className="text-sm font-medium text-gray-300">
             {t.urlsLabel}
           </label>
-          <button
+          {api.capabilities.nativeFolders && (
+            <button
             type="button"
             onClick={() => api.capabilities.nativeFolders
               && downloadDir !== '---'
               && api.openDirectory(downloadDir)}
-            disabled={!api.capabilities.nativeFolders}
             className="text-[10px] text-gray-400 enabled:hover:text-gray-200 font-mono bg-black/30 px-2 py-1 rounded max-w-[350px] truncate border border-gray-700 transition-colors disabled:cursor-default"
             title={downloadDir}
           >
             📁 {downloadDir}
-          </button>
+            </button>
+          )}
         </div>
         
         <textarea
@@ -253,15 +259,32 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
           className="w-full h-28 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-red-500 transition-all text-sm"
         />
 
-          <div className="flex items-center gap-4 flex-wrap">
-          <select
-            value={mediaType}
-            onChange={(event) => setMediaType(event.target.value as 'audio' | 'video')}
-            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
-          >
-            <option value="audio">MP3</option>
-            <option value="video">Vídeo</option>
-          </select>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex overflow-hidden rounded-lg border border-gray-700 bg-gray-900" role="group" aria-label="Tipo de download">
+            <button
+              type="button"
+              onClick={() => setMediaType('audio')}
+              aria-pressed={mediaType === 'audio'}
+              className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${mediaType === 'audio' ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-800'}`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 18V5l10-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm10-2a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              MP3
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaType('video')}
+              aria-pressed={mediaType === 'video'}
+              className={`flex items-center gap-2 border-l border-gray-700 px-3 py-2 text-sm transition-colors ${mediaType === 'video' ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-800'}`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="m10 8 5 4-5 4V8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16v12H4z" />
+              </svg>
+              Vídeo
+            </button>
+          </div>
           <button
             type="submit"
             className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-2 rounded-lg transition-all text-sm shadow-lg shadow-red-900/20 active:scale-95"
@@ -352,6 +375,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo }: UrlInputProps) {
           quality={quality}
           videoContainer={videoContainer}
           videoQuality={videoQuality}
+          fileDeletion={fileDeletion}
           onChooseFolder={handleSelectFolder}
           onClose={() => setSettingsOpen(false)}
           onSave={handleSaveSettings}

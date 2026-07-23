@@ -10,6 +10,7 @@ function App() {
     addDownloads,
     addVideoDownloads,
     cancelDownload,
+    removeDownload,
     retryDownload,
     retryFailed,
     clearCompleted,
@@ -30,6 +31,7 @@ function App() {
           downloads={downloads}
           onCancel={cancelDownload}
           onRetry={retryDownload}
+          onDelete={removeDownload}
           onRetryFailed={retryFailed}
           onClearCompleted={clearCompleted}
           onCancelAll={cancelAll}

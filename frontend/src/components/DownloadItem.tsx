@@ -8,9 +8,10 @@ interface DownloadItemProps {
   item: DownloadItemType;
   onCancel: (id: string) => void;
   onRetry: (id: string) => void;
+  onDelete: (item: DownloadItemType) => void;
 }
 
-export function DownloadItem({ item, onCancel, onRetry }: DownloadItemProps) {
+export function DownloadItem({ item, onCancel, onRetry, onDelete }: DownloadItemProps) {
   const { t } = useTranslation();
   const showProgress = ['downloading', 'converting', 'fetching_info'].includes(item.status);
   const canCancel = ['pending', 'fetching_info', 'downloading', 'converting'].includes(item.status);
@@ -92,6 +93,17 @@ export function DownloadItem({ item, onCancel, onRetry }: DownloadItemProps) {
                   : item.media_type === 'video' ? t.downloadVideoFile : t.downloadFile}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => onDelete(item)}
+              className="ml-auto text-gray-500 hover:text-red-400 transition-colors"
+              title={t.deleteItem}
+              aria-label={t.deleteItem}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 7h12m-9 0V5h6v2m-8 0 1 12h8l1-12" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

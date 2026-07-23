@@ -25,7 +25,7 @@ dependency lists and exact versions.
 
 | Project | Version | Purpose |
 | --- | --- | --- |
-| [Go](https://go.dev/) | 1.26.4 | Backend, HTTP API, queue management, persistence, and download processing. |
+| [Go](https://go.dev/) | 1.26.5 | Backend, HTTP API, queue management, persistence, and download processing. |
 | [Wails](https://wails.io/docs/introduction/) | 2.12.0 | Desktop application and bridge between Go and the React frontend. |
 | [kkdai/youtube](https://github.com/kkdai/youtube) | 2.10.6 | YouTube video and playlist metadata and audio stream retrieval. |
 | [FFmpeg](https://ffmpeg.org/documentation.html) | Provided by the system or image | Converts downloaded audio into MP3 at the supported quality settings. |
@@ -54,7 +54,7 @@ dependency lists and exact versions.
 
 Requirements:
 
-- Go 1.26.4+
+- Go 1.26.5+
 - Node.js 20.19+
 - Native Wails dependencies for the target operating system
 

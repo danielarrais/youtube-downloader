@@ -18,12 +18,12 @@ export function CancelDownload(arg1) {
   return window['go']['main']['App']['CancelDownload'](arg1);
 }
 
-export function ClearAll() {
-  return window['go']['main']['App']['ClearAll']();
+export function ClearAll(arg1) {
+  return window['go']['main']['App']['ClearAll'](arg1);
 }
 
-export function ClearCompleted() {
-  return window['go']['main']['App']['ClearCompleted']();
+export function ClearCompleted(arg1) {
+  return window['go']['main']['App']['ClearCompleted'](arg1);
 }
 
 export function GetConfig() {
@@ -56,6 +56,10 @@ export function OpenFolder(arg1) {
 
 export function PauseQueue() {
   return window['go']['main']['App']['PauseQueue']();
+}
+
+export function RemoveDownload(arg1, arg2) {
+  return window['go']['main']['App']['RemoveDownload'](arg1, arg2);
 }
 
 export function ResumeQueue() {

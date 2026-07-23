@@ -156,6 +156,87 @@ func TestCleanupPartialFilesRemovesKnownMediaParts(t *testing.T) {
 	}
 }
 
+func TestRemoveDownloadDeletesCompletedFile(t *testing.T) {
+	app := NewApp()
+	downloadDir := t.TempDir()
+	app.config = defaultConfig(t.TempDir())
+	app.config.DownloadDir = downloadDir
+	app.cacheDir = t.TempDir()
+	app.queuePath = filepath.Join(t.TempDir(), "queue.json")
+	path := filepath.Join(downloadDir, "song.mp3")
+	if err := os.WriteFile(path, []byte("audio"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: path}
+	app.queueOrder = []string{"completed"}
+
+	if err := app.RemoveDownload("completed", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("download file was not removed: %v", err)
+	}
+	if len(app.GetDownloads()) != 0 {
+		t.Fatalf("queue still contains removed item: %#v", app.GetDownloads())
+	}
+}
+
+func TestRemoveDownloadRejectsFileOutsideDownloadDirectory(t *testing.T) {
+	app := NewApp()
+	app.config = defaultConfig(t.TempDir())
+	app.config.DownloadDir = t.TempDir()
+	app.queuePath = filepath.Join(t.TempDir(), "queue.json")
+	outsidePath := filepath.Join(t.TempDir(), "outside.mp3")
+	if err := os.WriteFile(outsidePath, []byte("audio"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: outsidePath}
+	app.queueOrder = []string{"completed"}
+
+	if err := app.RemoveDownload("completed", true); err == nil {
+		t.Fatal("RemoveDownload() returned nil error for external path")
+	}
+	if _, err := os.Stat(outsidePath); err != nil {
+		t.Fatalf("external file was changed: %v", err)
+	}
+	if len(app.GetDownloads()) != 1 {
+		t.Fatal("queue item was removed after failed file deletion")
+	}
+}
+
+func TestClearCompletedDeletesCompletedFiles(t *testing.T) {
+	app := NewApp()
+	downloadDir := t.TempDir()
+	app.config = defaultConfig(t.TempDir())
+	app.config.DownloadDir = downloadDir
+	app.cacheDir = t.TempDir()
+	app.queuePath = filepath.Join(t.TempDir(), "queue.json")
+	completedPath := filepath.Join(downloadDir, "completed.mp3")
+	skippedPath := filepath.Join(downloadDir, "skipped.mp4")
+	for _, path := range []string{completedPath, skippedPath} {
+		if err := os.WriteFile(path, []byte("file"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	app.items["completed"] = &DownloadItem{ID: "completed", Status: StatusCompleted, FilePath: completedPath}
+	app.items["skipped"] = &DownloadItem{ID: "skipped", Status: StatusSkipped, FilePath: skippedPath}
+	app.items["pending"] = &DownloadItem{ID: "pending", Status: StatusPending}
+	app.queueOrder = []string{"completed", "skipped", "pending"}
+
+	if err := app.ClearCompleted(true); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{completedPath, skippedPath} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("completed file was not removed: %v", err)
+		}
+	}
+	items := app.GetDownloads()
+	if len(items) != 1 || items[0].ID != "pending" {
+		t.Fatalf("remaining queue items = %#v", items)
+	}
+}
+
 func TestSaveConfigDefaultsInvalidQuality(t *testing.T) {
 	app := NewApp()
 	app.configPath = filepath.Join(t.TempDir(), "config.json")

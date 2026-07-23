@@ -43,6 +43,7 @@ func newWebHandler(app *App, assets fs.FS, downloadDir string) http.Handler {
 	mux.HandleFunc("GET /api/downloads", server.getDownloads)
 	mux.HandleFunc("POST /api/downloads", server.addDownloads)
 	mux.HandleFunc("POST /api/downloads/{id}/cancel", server.cancelDownload)
+	mux.HandleFunc("DELETE /api/downloads/{id}", server.removeDownload)
 	mux.HandleFunc("POST /api/downloads/{id}/retry", server.retryDownload)
 	mux.HandleFunc("GET /api/downloads/{id}/file", server.downloadFile)
 	mux.HandleFunc("GET /api/stats", server.getStats)
@@ -121,6 +122,18 @@ func (s *webServer) cancelDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.app.CancelDownload(r.PathValue("id"))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *webServer) removeDownload(w http.ResponseWriter, r *http.Request) {
+	if err := s.app.RemoveDownload(r.PathValue("id"), true); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			writeAPIError(w, http.StatusNotFound, errors.New("download not found"))
+			return
+		}
+		writeAPIError(w, http.StatusInternalServerError, err)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -207,12 +220,18 @@ func (s *webServer) retryFailed(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *webServer) clearCompleted(w http.ResponseWriter, _ *http.Request) {
-	s.app.ClearCompleted()
+	if err := s.app.ClearCompleted(true); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, err)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *webServer) clearAll(w http.ResponseWriter, _ *http.Request) {
-	s.app.ClearAll()
+	if err := s.app.ClearAll(true); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, err)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -281,26 +300,6 @@ func (s *webServer) downloadByID(id string) (DownloadItem, bool) {
 		return DownloadItem{}, false
 	}
 	return *item, true
-}
-
-func secureDownloadPath(downloadDir, filePath string) (string, error) {
-	root, err := filepath.EvalSymlinks(downloadDir)
-	if err != nil {
-		return "", err
-	}
-	path, err := filepath.EvalSymlinks(filePath)
-	if err != nil {
-		return "", err
-	}
-	relative, err := filepath.Rel(root, path)
-	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return "", errors.New("file is outside download directory")
-	}
-	info, err := os.Stat(path)
-	if err != nil || !info.Mode().IsRegular() {
-		return "", errors.New("file is not regular")
-	}
-	return path, nil
 }
 
 func decodeJSON(r *http.Request, destination any) error {

@@ -6,6 +6,7 @@ interface DownloadQueueProps {
   downloads: DownloadItemType[];
   onCancel: (id: string) => void;
   onRetry: (id: string) => void;
+  onDelete: (item: DownloadItemType) => void;
   onRetryFailed: () => void;
   onClearCompleted: () => void;
   onCancelAll: () => void;
@@ -19,6 +20,7 @@ export function DownloadQueue({
   downloads,
   onCancel,
   onRetry,
+  onDelete,
   onRetryFailed,
   onClearCompleted,
   onCancelAll,
@@ -82,6 +84,7 @@ export function DownloadQueue({
             item={item}
             onCancel={onCancel}
             onRetry={onRetry}
+            onDelete={onDelete}
           />
         ))}
       </div>

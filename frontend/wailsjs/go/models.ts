@@ -5,6 +5,7 @@ export namespace main {
 	    quality: string;
 	    video_container: string;
 	    video_quality: string;
+	    file_deletion: string;
 	    language: string;
 	
 	    static createFrom(source: any = {}) {
@@ -17,6 +18,7 @@ export namespace main {
 	        this.quality = source["quality"];
 	        this.video_container = source["video_container"];
 	        this.video_quality = source["video_quality"];
+	        this.file_deletion = source["file_deletion"];
 	        this.language = source["language"];
 	    }
 	}

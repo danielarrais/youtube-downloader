@@ -6,6 +6,7 @@ interface SettingsModalProps {
   quality: string;
   videoContainer: 'mp4' | 'webm' | 'mkv';
   videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p';
+  fileDeletion: 'delete' | 'ask' | 'keep';
   onChooseFolder: () => Promise<string | undefined>;
   onClose: () => void;
   onSave: (
@@ -13,6 +14,7 @@ interface SettingsModalProps {
     quality: string,
     videoContainer: 'mp4' | 'webm' | 'mkv',
     videoQuality: '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | '1440p' | '2160p',
+    fileDeletion: 'delete' | 'ask' | 'keep',
   ) => Promise<void>;
   canChooseFolder: boolean;
 }
@@ -22,6 +24,7 @@ export function SettingsModal({
   quality,
   videoContainer,
   videoQuality,
+  fileDeletion,
   onChooseFolder,
   onClose,
   onSave,
@@ -32,6 +35,7 @@ export function SettingsModal({
   const [selectedQuality, setSelectedQuality] = useState(quality);
   const [selectedVideoContainer, setSelectedVideoContainer] = useState(videoContainer);
   const [selectedVideoQuality, setSelectedVideoQuality] = useState(videoQuality);
+  const [selectedFileDeletion, setSelectedFileDeletion] = useState(fileDeletion);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -44,7 +48,7 @@ export function SettingsModal({
     setSaving(true);
     setError('');
     try {
-      await onSave(selectedDir, selectedQuality, selectedVideoContainer, selectedVideoQuality);
+      await onSave(selectedDir, selectedQuality, selectedVideoContainer, selectedVideoQuality, selectedFileDeletion);
       onClose();
     } catch {
       setError(t.settingsSaveError);
@@ -61,12 +65,12 @@ export function SettingsModal({
         </div>
 
         <div className="space-y-5 p-5">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-300">{t.downloadFolder}</label>
-            <div className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 break-all">
-              {selectedDir}
-            </div>
-            {canChooseFolder && (
+          {canChooseFolder && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">{t.downloadFolder}</label>
+              <div className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-300 break-all">
+                {selectedDir}
+              </div>
               <button
                 type="button"
                 onClick={chooseFolder}
@@ -74,8 +78,8 @@ export function SettingsModal({
               >
                 {t.chooseFolder}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-300">{t.videoFormat}</label>
             <select
@@ -88,6 +92,20 @@ export function SettingsModal({
               <option value="mkv">MKV</option>
             </select>
           </div>
+          {canChooseFolder && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">{t.fileDeletion}</label>
+              <select
+                value={selectedFileDeletion}
+                onChange={(event) => setSelectedFileDeletion(event.target.value as typeof selectedFileDeletion)}
+                className="app-select w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:border-red-500 focus:outline-none"
+              >
+                <option value="delete">{t.fileDeletionDelete}</option>
+                <option value="ask">{t.fileDeletionAsk}</option>
+                <option value="keep">{t.fileDeletionKeep}</option>
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-300">{t.videoQuality}</label>
             <select

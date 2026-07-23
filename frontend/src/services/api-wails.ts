@@ -11,6 +11,7 @@ export const wailsApi: AppAPI = {
   getDownloads: () => WailsApp.GetDownloads() as Promise<DownloadItem[]>,
   getStats: () => WailsApp.GetStats() as Promise<QueueStats>,
   cancelDownload: WailsApp.CancelDownload,
+  removeDownload: WailsApp.RemoveDownload,
   retryDownload: (id) => WailsApp.RetryDownload(id) as Promise<DownloadItem>,
   retryFailed: WailsApp.RetryFailed,
   getPlaylistInfo: (url) => WailsApp.GetPlaylistInfo(url) as Promise<PlaylistInfo>,

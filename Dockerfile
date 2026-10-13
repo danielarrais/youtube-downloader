@@ -6,7 +6,7 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.6-bookworm AS backend
+FROM --platform=$BUILDPLATFORM golang:1.26.9-bookworm AS backend
 
 ARG TARGETARCH
 ARG TARGETOS

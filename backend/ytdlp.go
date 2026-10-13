@@ -35,12 +35,15 @@ type ytDLPDownloadRequest struct {
 	FormatSelector    string
 	OutputTemplate    string
 	MergeOutputFormat string
+	ExtraArgs         []string
 }
 
 type ytDLPInfo struct {
+	ID           string
 	Title        string
 	ThumbnailURL string
 	AudioFormats []AudioFormat
+	VideoFormats []VideoFormat
 }
 
 func downloadAudioWithYTDLP(ctx context.Context, url string, selected *AudioFormat, outputTemplate string, onProgress func(mediaDownloadProgress)) (string, error) {
@@ -87,6 +90,7 @@ func runYTDLPDownload(ctx context.Context, request ytDLPDownloadRequest, onProgr
 		if request.MergeOutputFormat != "" {
 			args = append(args, "--merge-output-format", request.MergeOutputFormat)
 		}
+		args = append(args, request.ExtraArgs...)
 		args = append(args, request.URL)
 
 		log.Printf("[yt-dlp] starting download strategy=%s format=%q url=%s", strategyName, request.FormatSelector, request.URL)
@@ -330,6 +334,10 @@ func ytDLPOutputTemplate(dir, baseName string) string {
 }
 
 func listAudioFormatsWithYTDLP(ctx context.Context, url string) (ytDLPInfo, error) {
+	return fetchYTDLPInfo(ctx, url)
+}
+
+func fetchYTDLPInfo(ctx context.Context, url string, extraArgs ...string) (ytDLPInfo, error) {
 	ytDLPPath, err := CheckAndDownloadYTDLP()
 	if err != nil {
 		return ytDLPInfo{}, fmt.Errorf("%w: %v", errYTDLPUnavailable, err)
@@ -338,14 +346,22 @@ func listAudioFormatsWithYTDLP(ctx context.Context, url string) (ytDLPInfo, erro
 	for _, strategy := range ytDLPStrategies() {
 		strategyName := ytDLPStrategyName(strategy)
 		args := append(buildYTDLPBaseArgs(), strategy...)
-		args = append(args, "-J", "--no-download", url)
-		log.Printf("[yt-dlp] listing audio formats strategy=%s url=%s", strategyName, url)
-		data, err := exec.CommandContext(ctx, ytDLPPath, args...).Output()
+		args = append(args, "-J", "--no-download")
+		args = append(args, extraArgs...)
+		args = append(args, url)
+		log.Printf("[yt-dlp] listing formats strategy=%s url=%s", strategyName, url)
+		cmd := exec.CommandContext(ctx, ytDLPPath, args...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		data, err := cmd.Output()
 		if err == nil {
-			log.Printf("[yt-dlp] listed audio formats strategy=%s url=%s", strategyName, url)
+			log.Printf("[yt-dlp] listed formats strategy=%s url=%s", strategyName, url)
 			return parseYTDLPInfo(data)
 		}
-		log.Printf("[yt-dlp] list audio formats failed strategy=%s error=%v url=%s", strategyName, err, url)
+		if detail := strings.TrimSpace(stderr.String()); detail != "" {
+			err = fmt.Errorf("yt-dlp error: %s", detail)
+		}
+		log.Printf("[yt-dlp] list formats failed strategy=%s error=%v url=%s", strategyName, err, url)
 		lastErr = err
 	}
 	if lastErr == nil {
@@ -354,28 +370,47 @@ func listAudioFormatsWithYTDLP(ctx context.Context, url string) (ytDLPInfo, erro
 	return ytDLPInfo{}, lastErr
 }
 
+type ytDLPFormat struct {
+	FormatID       string  `json:"format_id"`
+	Ext            string  `json:"ext"`
+	AudioCodec     string  `json:"acodec"`
+	VideoCodec     string  `json:"vcodec"`
+	ABR            float64 `json:"abr"`
+	ASR            float64 `json:"asr"`
+	TBR            float64 `json:"tbr"`
+	FPS            float64 `json:"fps"`
+	Height         int     `json:"height"`
+	Filesize       float64 `json:"filesize"`
+	FilesizeApprox float64 `json:"filesize_approx"`
+	Protocol       string  `json:"protocol"`
+	FormatNote     string  `json:"format_note"`
+	Resolution     string  `json:"resolution"`
+}
+
+type ytDLPPayload struct {
+	ID        string         `json:"id"`
+	Title     string         `json:"title"`
+	Thumbnail string         `json:"thumbnail"`
+	Formats   []ytDLPFormat  `json:"formats"`
+	Entries   []ytDLPPayload `json:"entries"`
+}
+
 func parseYTDLPInfo(data []byte) (ytDLPInfo, error) {
-	type ytDLPFormat struct {
-		FormatID   string `json:"format_id"`
-		Ext        string `json:"ext"`
-		AudioCodec string `json:"acodec"`
-		VideoCodec string `json:"vcodec"`
-		ABR        int    `json:"abr"`
-		ASR        int    `json:"asr"`
-		Protocol   string `json:"protocol"`
-		FormatNote string `json:"format_note"`
-		Resolution string `json:"resolution"`
-	}
-	type payload struct {
-		Title     string        `json:"title"`
-		Thumbnail string        `json:"thumbnail"`
-		Formats   []ytDLPFormat `json:"formats"`
-	}
-	var info payload
+	var info ytDLPPayload
 	if err := json.Unmarshal(data, &info); err != nil {
 		return ytDLPInfo{}, err
 	}
-	result := ytDLPInfo{Title: info.Title, ThumbnailURL: info.Thumbnail}
+	if len(info.Formats) == 0 && len(info.Entries) > 0 {
+		entry := info.Entries[0]
+		if entry.Title == "" {
+			entry.Title = info.Title
+		}
+		if entry.Thumbnail == "" {
+			entry.Thumbnail = info.Thumbnail
+		}
+		info = entry
+	}
+	result := ytDLPInfo{ID: info.ID, Title: info.Title, ThumbnailURL: info.Thumbnail}
 	seen := map[string]struct{}{}
 	for _, format := range info.Formats {
 		if format.FormatID == "" || format.AudioCodec == "" || format.AudioCodec == "none" {
@@ -388,15 +423,16 @@ func parseYTDLPInfo(data []byte) (ytDLPInfo, error) {
 			continue
 		}
 		seen[format.FormatID] = struct{}{}
+		abr, asr := int(format.ABR), int(format.ASR)
 		audioFormat := AudioFormat{
 			FormatID:   format.FormatID,
 			Container:  format.Ext,
 			Extension:  format.Ext,
 			AudioCodec: format.AudioCodec,
-			Bitrate:    format.ABR,
-			SampleRate: format.ASR,
+			Bitrate:    abr,
+			SampleRate: asr,
 			Protocol:   format.Protocol,
-			Label:      audioFormatLabel(format.Ext, format.AudioCodec, format.ABR, format.ASR, format.Protocol, format.FormatNote),
+			Label:      audioFormatLabel(format.Ext, format.AudioCodec, abr, asr, format.Protocol, format.FormatNote),
 		}
 		result.AudioFormats = append(result.AudioFormats, audioFormat)
 	}
@@ -406,7 +442,60 @@ func parseYTDLPInfo(data []byte) (ytDLPInfo, error) {
 		}
 		return result.AudioFormats[i].Label < result.AudioFormats[j].Label
 	})
+	result.VideoFormats = genericVideoFormats(info.Formats)
 	return result, nil
+}
+
+// genericVideoFormats groups yt-dlp video formats by height. The download only
+// uses the resolution and extension, so VideoItag is just a stable index.
+func genericVideoFormats(formats []ytDLPFormat) []VideoFormat {
+	best := map[int]ytDLPFormat{}
+	for _, format := range formats {
+		if format.VideoCodec == "none" || (format.VideoCodec == "" && format.Height == 0) {
+			continue
+		}
+		current, ok := best[format.Height]
+		if !ok || ytDLPFormatSize(format) > ytDLPFormatSize(current) || (ytDLPFormatSize(format) == ytDLPFormatSize(current) && format.TBR > current.TBR) {
+			best[format.Height] = format
+		}
+	}
+	heights := make([]int, 0, len(best))
+	for height := range best {
+		heights = append(heights, height)
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
+
+	result := make([]VideoFormat, 0, len(heights))
+	for index, height := range heights {
+		format := best[height]
+		videoFormat := VideoFormat{
+			VideoItag:  index + 1,
+			Container:  "mp4",
+			Extension:  "mp4",
+			FPS:        int(format.FPS),
+			VideoCodec: strings.TrimSpace(format.VideoCodec),
+			Size:       ytDLPFormatSize(format),
+		}
+		if height > 0 {
+			videoFormat.Resolution = strconv.Itoa(height) + "p"
+		}
+		if format.AudioCodec != "" && format.AudioCodec != "none" {
+			videoFormat.AudioCodec = format.AudioCodec
+		}
+		videoFormat.Label = videoFormatLabel(videoFormat)
+		if height == 0 {
+			videoFormat.Label = "Melhor qualidade (MP4)"
+		}
+		result = append(result, videoFormat)
+	}
+	return result
+}
+
+func ytDLPFormatSize(format ytDLPFormat) int64 {
+	if format.Filesize > 0 {
+		return int64(format.Filesize)
+	}
+	return int64(format.FilesizeApprox)
 }
 
 func audioFormatLabel(container, codec string, bitrate, sampleRate int, protocol, note string) string {

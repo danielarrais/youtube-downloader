@@ -31,6 +31,11 @@ func TestCleanYouTubeURL(t *testing.T) {
 			url:  "  https://youtu.be/3CWL9WXYSWU  ",
 			want: "https://youtu.be/3CWL9WXYSWU",
 		},
+		{
+			name: "keeps parameters from other platforms",
+			url:  " https://www.tiktok.com/@user/video/123?is_from_webapp=1&sender_device=pc ",
+			want: "https://www.tiktok.com/@user/video/123?is_from_webapp=1&sender_device=pc",
+		},
 	}
 
 	for _, test := range tests {

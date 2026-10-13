@@ -214,6 +214,9 @@ func (a *App) AddVideoDownloads(requests []VideoDownloadRequest) []DownloadItem 
 
 func cleanYouTubeURL(rawURL string) string {
 	url := strings.TrimSpace(rawURL)
+	if !isYouTubeURL(url) {
+		return url
+	}
 	if index := strings.IndexByte(url, '&'); index >= 0 {
 		return url[:index]
 	}
@@ -221,7 +224,11 @@ func cleanYouTubeURL(rawURL string) string {
 }
 
 func (a *App) GetVideoFormats(url string) (VideoInfo, error) {
-	return NewYouTubeSession().GetVideoFormats(context.Background(), cleanYouTubeURL(url))
+	url = cleanYouTubeURL(url)
+	if !isYouTubeURL(url) {
+		return getGenericVideoInfo(context.Background(), url)
+	}
+	return NewYouTubeSession().GetVideoFormats(context.Background(), url)
 }
 
 func (a *App) GetDownloads() []DownloadItem {

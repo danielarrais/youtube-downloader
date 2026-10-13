@@ -17,6 +17,10 @@ var convertAudioToMP3 = ConvertToMp3
 var errPublishConvertedFile = errors.New("publish converted file")
 
 func (a *App) processDownload(ctx context.Context, item *DownloadItem) {
+	if !isYouTubeURL(item.URL) {
+		a.processGenericDownload(ctx, item)
+		return
+	}
 	session := NewYouTubeSession()
 	video, err := session.GetVideo(ctx, item.URL)
 	if err != nil {

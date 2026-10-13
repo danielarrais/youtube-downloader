@@ -14,7 +14,23 @@ interface UrlInputProps {
   onCloseSettings: () => void;
 }
 
-const cleanYouTubeUrl = (value: string) => value.trim().split('&', 1)[0];
+const youTubeDomains = ['youtube.com', 'youtu.be', 'youtube-nocookie.com'];
+
+const parseInputUrl = (value: string) => new URL(value.includes('://') ? value : `https://${value}`);
+
+const isYouTubeUrl = (value: string) => {
+  try {
+    const host = parseInputUrl(value).hostname.toLowerCase();
+    return youTubeDomains.some(domain => host === domain || host.endsWith(`.${domain}`));
+  } catch {
+    return false;
+  }
+};
+
+const cleanUrl = (value: string) => {
+  const url = value.trim();
+  return isYouTubeUrl(url) ? url.split('&', 1)[0] : url;
+};
 
 type VideoContainer = Config['video_container'];
 type VideoQuality = Config['video_quality'];
@@ -113,7 +129,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
 
   const isPlaylistUrl = (value: string) => {
     try {
-      return new URL(value).searchParams.has('list');
+      return isYouTubeUrl(value) && parseInputUrl(value).searchParams.has('list');
     } catch {
       return false;
     }
@@ -147,7 +163,7 @@ export function UrlInput({ onSubmitAudio, onSubmitVideo, settingsOpen, onOpenSet
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const urlList = urls.split('\n').map(cleanYouTubeUrl).filter(url => url.length > 0);
+    const urlList = urls.split('\n').map(cleanUrl).filter(url => url.length > 0);
     if (urlList.length === 0) return;
 
     const playlistUrls = [...new Set(urlList.filter(isPlaylistUrl))];

@@ -329,6 +329,33 @@ func ytDLPVideoSelector(format VideoFormat) string {
 	return selector + "/best"
 }
 
+func ytDLPGenericVideoSelector(format VideoFormat) string {
+	height := videoHeight(format.Resolution)
+	progressive := "best[vcodec!=none][acodec!=none]"
+	videoFilter := "bestvideo*[vcodec!=none]"
+	audioFilter := "bestaudio"
+	if height > 0 {
+		filter := "[height<=" + strconv.Itoa(height) + "]"
+		progressive += filter
+		videoFilter += filter
+	}
+	switch format.Extension {
+	case "mp4":
+		progressive += "[ext=mp4]"
+		videoFilter += "[ext=mp4]"
+		audioFilter += "[ext=m4a]/bestaudio"
+	case "webm":
+		progressive += "[ext=webm]"
+		videoFilter += "[ext=webm]"
+		audioFilter += "[ext=webm]/bestaudio"
+	}
+	withoutExt := "best[vcodec!=none][acodec!=none]"
+	if height > 0 {
+		withoutExt += "[height<=" + strconv.Itoa(height) + "]"
+	}
+	return progressive + "/" + videoFilter + "+" + audioFilter + "/" + withoutExt + "/best[vcodec!=none]"
+}
+
 func ytDLPOutputTemplate(dir, baseName string) string {
 	return filepath.Join(dir, baseName+".%(ext)s")
 }

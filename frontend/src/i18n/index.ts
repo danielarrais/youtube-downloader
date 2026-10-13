@@ -61,6 +61,8 @@ export interface Translations {
   openFolder: string;
   downloadFile: string;
   downloadVideoFile: string;
+  copyLink: string;
+  linkCopied: string;
   deleteItem: string;
   removeItemTitle: string;
   removeItemMessage: string;
@@ -141,6 +143,8 @@ export const translations: Record<Language, Translations> = {
     openFolder: 'Abrir na pasta',
     downloadFile: 'Baixar MP3',
     downloadVideoFile: 'Baixar vídeo',
+    copyLink: 'Copiar link',
+    linkCopied: 'Link copiado',
     deleteItem: 'Excluir item',
     removeItemTitle: 'Remover download',
     removeItemMessage: 'Deseja remover este download da lista?',
@@ -217,6 +221,8 @@ export const translations: Record<Language, Translations> = {
     openFolder: 'Open folder',
     downloadFile: 'Download MP3',
     downloadVideoFile: 'Download video',
+    copyLink: 'Copy link',
+    linkCopied: 'Link copied',
     deleteItem: 'Delete item',
     removeItemTitle: 'Remove download',
     removeItemMessage: 'Do you want to remove this download from the list?',

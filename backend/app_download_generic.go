@@ -226,7 +226,7 @@ func (a *App) processGenericVideoDownload(ctx context.Context, item *DownloadIte
 
 	sourcePath, err := runYTDLPDownload(ctx, ytDLPDownloadRequest{
 		URL:               item.URL,
-		FormatSelector:    ytDLPVideoSelector(format),
+		FormatSelector:    ytDLPGenericVideoSelector(format),
 		OutputTemplate:    ytDLPOutputTemplate(a.cacheDir, item.ID+"-video"),
 		MergeOutputFormat: format.Extension,
 		ExtraArgs:         genericDownloadArgs(),

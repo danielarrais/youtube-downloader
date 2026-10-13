@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DownloadItem as DownloadItemType } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { ProgressBar } from './ProgressBar';
@@ -27,6 +28,36 @@ function formatFileSize(size?: number) {
   return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
+function sourceLabel(url: string) {
+  try {
+    const parsed = new URL(url.includes('://') ? url : `https://${url}`);
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'youtu.be' || host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtube-nocookie.com' || host.endsWith('.youtube-nocookie.com')) return 'YouTube';
+    if (host === 'x.com' || host.endsWith('.x.com') || host === 'twitter.com' || host.endsWith('.twitter.com')) return 'X';
+    if (host === 'instagram.com' || host.endsWith('.instagram.com')) return 'Instagram';
+    if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return 'TikTok';
+  } catch {
+    return '';
+  }
+  return '';
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const textArea = document.createElement('textarea');
+  textArea.value = value;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textArea);
+}
+
 interface DownloadItemProps {
   item: DownloadItemType;
   onCancel: (id: string) => void;
@@ -36,12 +67,24 @@ interface DownloadItemProps {
 
 export function DownloadItem({ item, onCancel, onRetry, onDelete }: DownloadItemProps) {
   const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
   const showProgress = ['downloading', 'converting', 'fetching_info'].includes(item.status);
   const canCancel = ['pending', 'fetching_info', 'downloading', 'converting'].includes(item.status);
   const canRetry = ['failed', 'cancelled'].includes(item.status);
   const canDownload = ['completed', 'skipped'].includes(item.status);
   const fileSize = ['completed', 'skipped'].includes(item.status) ? formatFileSize(item.file_size) : '';
   const linkClassName = 'text-sm text-blue-600 underline-offset-2 hover:underline dark:text-blue-400';
+  const source = item.media_type === 'video' ? sourceLabel(item.url) : '';
+
+  const handleCopyLink = async () => {
+    try {
+      await copyText(item.url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch (error) {
+      console.error('Erro ao copiar link:', error);
+    }
+  };
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors dark:border-gray-700 dark:bg-gray-800">
@@ -113,10 +156,33 @@ export function DownloadItem({ item, onCancel, onRetry, onDelete }: DownloadItem
               <span className="inline-flex whitespace-nowrap rounded-full border border-slate-300 bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 dark:border-gray-500 dark:bg-gray-700/90 dark:text-gray-100">
                 {itemQualityLabel(item)}
               </span>
+              {source && (
+                <span className="inline-flex whitespace-nowrap rounded-full border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 dark:border-indigo-800/70 dark:bg-indigo-950/40 dark:text-indigo-300">
+                  {source}
+                </span>
+              )}
               <StatusBadge status={item.status} />
             </div>
 
             <div className="flex flex-row flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="rounded-lg border border-slate-300 bg-slate-100 p-2 text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-gray-500 dark:bg-gray-700/90 dark:text-gray-100 dark:hover:bg-gray-600 dark:hover:text-blue-300"
+                title={copied ? t.linkCopied : t.copyLink}
+                aria-label={copied ? t.linkCopied : t.copyLink}
+              >
+                {copied ? (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="m5 13 4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 8h10v10H8z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
               {fileSize && (
                 <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-300">
                   {fileSize}

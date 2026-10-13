@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDetectPlatform(t *testing.T) {
 	tests := map[string]Platform{
@@ -74,5 +77,15 @@ func TestGenericTitle(t *testing.T) {
 	}
 	if got := genericTitle("", "https://www.tiktok.com/@a/video/9", "9"); got != "tiktok 9" {
 		t.Fatalf("genericTitle = %q", got)
+	}
+}
+
+func TestYTDLPGenericVideoSelectorRequiresVideo(t *testing.T) {
+	selector := ytDLPGenericVideoSelector(VideoFormat{Extension: "mp4", Resolution: "720p"})
+	if want := "best[vcodec!=none][acodec!=none][height<=720][ext=mp4]"; !strings.HasPrefix(selector, want) {
+		t.Fatalf("selector = %q, want prefix %q", selector, want)
+	}
+	if !strings.HasSuffix(selector, "best[vcodec!=none]") {
+		t.Fatalf("selector has an audio-only fallback: %q", selector)
 	}
 }

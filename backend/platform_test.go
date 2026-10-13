@@ -88,4 +88,7 @@ func TestYTDLPGenericVideoSelectorRequiresVideo(t *testing.T) {
 	if !strings.HasSuffix(selector, "best[vcodec!=none]") {
 		t.Fatalf("selector has an audio-only fallback: %q", selector)
 	}
+	if strings.Contains(selector, "/bestaudio/") {
+		t.Fatalf("selector contains standalone audio fallback: %q", selector)
+	}
 }

@@ -333,7 +333,7 @@ func ytDLPGenericVideoSelector(format VideoFormat) string {
 	height := videoHeight(format.Resolution)
 	progressive := "best[vcodec!=none][acodec!=none]"
 	videoFilter := "bestvideo*[vcodec!=none]"
-	audioFilter := "bestaudio"
+	preferredAudioFilter := "bestaudio"
 	if height > 0 {
 		filter := "[height<=" + strconv.Itoa(height) + "]"
 		progressive += filter
@@ -343,17 +343,17 @@ func ytDLPGenericVideoSelector(format VideoFormat) string {
 	case "mp4":
 		progressive += "[ext=mp4]"
 		videoFilter += "[ext=mp4]"
-		audioFilter += "[ext=m4a]/bestaudio"
+		preferredAudioFilter += "[ext=m4a]"
 	case "webm":
 		progressive += "[ext=webm]"
 		videoFilter += "[ext=webm]"
-		audioFilter += "[ext=webm]/bestaudio"
+		preferredAudioFilter += "[ext=webm]"
 	}
 	withoutExt := "best[vcodec!=none][acodec!=none]"
 	if height > 0 {
 		withoutExt += "[height<=" + strconv.Itoa(height) + "]"
 	}
-	return progressive + "/" + videoFilter + "+" + audioFilter + "/" + withoutExt + "/best[vcodec!=none]"
+	return progressive + "/" + videoFilter + "+" + preferredAudioFilter + "/" + videoFilter + "+bestaudio/" + withoutExt + "/best[vcodec!=none]"
 }
 
 func ytDLPOutputTemplate(dir, baseName string) string {

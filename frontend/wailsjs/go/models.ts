@@ -116,9 +116,12 @@ export namespace main {
 	export class VideoFormat {
 	    video_itag: number;
 	    audio_itag?: number;
+	    format_id?: string;
 	    container: string;
 	    extension: string;
 	    resolution: string;
+	    width?: number;
+	    height?: number;
 	    fps?: number;
 	    video_codec?: string;
 	    audio_codec?: string;
@@ -133,9 +136,12 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.video_itag = source["video_itag"];
 	        this.audio_itag = source["audio_itag"];
+	        this.format_id = source["format_id"];
 	        this.container = source["container"];
 	        this.extension = source["extension"];
 	        this.resolution = source["resolution"];
+	        this.width = source["width"];
+	        this.height = source["height"];
 	        this.fps = source["fps"];
 	        this.video_codec = source["video_codec"];
 	        this.audio_codec = source["audio_codec"];
@@ -218,7 +224,7 @@ export namespace main {
 	    static createFrom(source: any = {}) {
 	        return new PlaylistVideo(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -249,7 +255,7 @@ export namespace main {
 	        this.author = source["author"];
 	        this.videos = this.convertValues(source["videos"], PlaylistVideo);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -280,7 +286,7 @@ export namespace main {
 	    static createFrom(source: any = {}) {
 	        return new QueueStats(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.total = source["total"];

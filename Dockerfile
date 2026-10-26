@@ -1,12 +1,13 @@
-FROM --platform=$BUILDPLATFORM node:20.19.4-bookworm-slim AS frontend
+FROM --platform=$BUILDPLATFORM node:24.22.1-bookworm-slim AS frontend
 
 WORKDIR /src/frontend
 COPY frontend/package.json frontend/package-lock.json ./
+RUN npm install --global npm@12.2.1
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26.9-bookworm AS backend
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS backend
 
 ARG TARGETARCH
 ARG TARGETOS
@@ -53,7 +54,8 @@ RUN case "$TARGETARCH" in \
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ytdlp
 
 ARG TARGETARCH
-ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/latest/download
+ARG YTDLP_VERSION=2026.10.21
+ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}
 
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates curl \
@@ -75,7 +77,7 @@ RUN case "$TARGETARCH" in \
     && mkdir -p /out \
     && install -m 0755 "/tmp/$filename" /out/yt-dlp
 
-FROM debian:bookworm-slim
+FROM node:24.22.1-bookworm-slim
 
 RUN apt-get update \
 	&& apt-get install --yes --no-install-recommends \

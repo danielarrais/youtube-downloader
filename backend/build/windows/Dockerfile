@@ -1,8 +1,15 @@
-FROM golang:1.26.9-bookworm AS builder
+FROM node:24.22.1-bookworm-slim AS node
 
-ARG WAILS_VERSION=v2.12.0
+FROM golang:1.27.3-bookworm AS builder
+
+COPY --from=node /usr/local /usr/local
+
+RUN npm install --global npm@12.2.1
+
+ARG WAILS_VERSION=v2.17.0
 ARG FFMPEG_URL=https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
-ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/latest/download
+ARG YTDLP_VERSION=2026.10.21
+ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -10,7 +17,6 @@ RUN apt-get update && \
         curl \
         gcc-mingw-w64-x86-64 \
         nsis \
-        npm \
         unzip && \
     rm -rf /var/lib/apt/lists/*
 

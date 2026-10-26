@@ -92,3 +92,50 @@ func TestYTDLPGenericVideoSelectorRequiresVideo(t *testing.T) {
 		t.Fatalf("selector contains standalone audio fallback: %q", selector)
 	}
 }
+
+func TestParseYTDLPInfoUsesShortEdgeForPortraitVideo(t *testing.T) {
+	data := []byte(`{
+		"id": "2114640210013163520",
+		"title": "Vertical X post",
+		"formats": [
+			{"format_id": "hls-audio", "ext": "mp4", "acodec": "mp4a.40.2", "vcodec": "none", "abr": 128},
+			{"format_id": "hls-1260", "ext": "mp4", "width": 720, "height": 1280, "vcodec": "avc1", "acodec": "none", "tbr": 1260},
+			{"format_id": "http-10368", "ext": "mp4", "width": 1080, "height": 1920, "tbr": 10368},
+			{"format_id": "hls-4953", "ext": "mp4", "width": 1080, "height": 1920, "vcodec": "avc1", "acodec": "none", "tbr": 4953}
+		]
+	}`)
+
+	info, err := parseYTDLPInfo(data)
+	if err != nil {
+		t.Fatalf("parseYTDLPInfo error: %v", err)
+	}
+	if len(info.VideoFormats) != 2 {
+		t.Fatalf("video formats = %+v, want two qualities", info.VideoFormats)
+	}
+	format := info.VideoFormats[0]
+	if format.Resolution != "1080p" || format.Width != 1080 || format.Height != 1920 {
+		t.Fatalf("portrait format = %+v, want 1080p at 1080x1920", format)
+	}
+	selector := ytDLPGenericVideoSelector(format)
+	if !strings.Contains(selector, "[width<=1080]") {
+		t.Fatalf("portrait selector = %q, want width filter", selector)
+	}
+	if strings.Contains(selector, "[height<=1080]") {
+		t.Fatalf("portrait selector = %q, must not limit portrait height", selector)
+	}
+}
+
+func TestShouldRetryYTDLPStrategyOnForbiddenResponse(t *testing.T) {
+	err := &testStringError{"yt-dlp error: HTTP Error 403: Forbidden"}
+	if !shouldRetryYTDLPStrategy(err) {
+		t.Fatal("403 response should retry without impersonation")
+	}
+}
+
+type testStringError struct {
+	message string
+}
+
+func (e *testStringError) Error() string {
+	return e.message
+}

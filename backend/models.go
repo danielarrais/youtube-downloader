@@ -84,9 +84,12 @@ type AudioFormat struct {
 type VideoFormat struct {
 	VideoItag  int    `json:"video_itag"`
 	AudioItag  int    `json:"audio_itag,omitempty"`
+	FormatID   string `json:"format_id,omitempty"`
 	Container  string `json:"container"`
 	Extension  string `json:"extension"`
 	Resolution string `json:"resolution"`
+	Width      int    `json:"width,omitempty"`
+	Height     int    `json:"height,omitempty"`
 	FPS        int    `json:"fps,omitempty"`
 	VideoCodec string `json:"video_codec,omitempty"`
 	AudioCodec string `json:"audio_codec,omitempty"`

@@ -10,13 +10,13 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: "1.26.9"
-  NODE_VERSION: "20.19.4"
-  NPM_VERSION: "10.8.2"
-  WAILS_VERSION: "v2.12.0"
+  GO_VERSION: "1.27.3"
+  NODE_VERSION: "24.22.1"
+  NPM_VERSION: "12.2.1"
+  WAILS_VERSION: "v2.17.0"
   NFPM_VERSION: "v2.46.3"
   FFMPEG_BASE_URL: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest"
-  YTDLP_BASE_URL: "https://github.com/yt-dlp/yt-dlp/releases/latest/download"
+  YTDLP_BASE_URL: "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.21"
 
 jobs:
   validate:

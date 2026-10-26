@@ -26,23 +26,23 @@ dependency lists and exact versions.
 
 | Project | Version | Purpose |
 | --- | --- | --- |
-| [Go](https://go.dev/) | 1.26.9 | Backend, HTTP API, queue management, persistence, and download processing. |
-| [Wails](https://wails.io/docs/introduction/) | 2.12.0 | Desktop application and bridge between Go and the React frontend. |
+| [Go](https://go.dev/) | 1.27.3 | Backend, HTTP API, queue management, persistence, and download processing. |
+| [Wails](https://wails.io/docs/introduction/) | 2.17.0 | Desktop application and bridge between Go and the React frontend. |
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Runtime dependency | Primary downloader for YouTube audio and video streams. |
 | [kkdai/youtube](https://github.com/kkdai/youtube) | 2.10.6 | YouTube video and playlist metadata plus fallback stream retrieval. |
 | [FFmpeg](https://ffmpeg.org/documentation.html) | Provided by the system or image | Converts downloaded audio into MP3 at the supported quality settings. |
 | [google/uuid](https://github.com/google/uuid) | 1.6.0 | Generates unique identifiers for queue items. |
-| [ulikunitz/xz](https://github.com/ulikunitz/xz) | 0.5.15 | Extracts Linux FFmpeg builds distributed as `tar.xz` archives. |
+| [ulikunitz/xz](https://github.com/ulikunitz/xz) | 0.5.17 | Extracts Linux FFmpeg builds distributed as `tar.xz` archives. |
 
 ### Frontend
 
 | Project | Version | Purpose |
 | --- | --- | --- |
-| [React](https://react.dev/reference/react) | 18.2 | Shared interface for the desktop and web versions. |
-| [TypeScript](https://www.typescriptlang.org/docs/) | 5.3 | Type checking and frontend compilation. |
-| [Vite](https://vite.dev/guide/) | 8.0 | Development server and static frontend build. |
-| [Tailwind CSS](https://tailwindcss.com/docs/) | 3.4 | Interface styling. |
-| [PostCSS](https://postcss.org/) and [Autoprefixer](https://github.com/postcss/autoprefixer) | 8.4 / 10.4 | Generated CSS processing and browser compatibility. |
+| [React](https://react.dev/reference/react) | 19.3 | Shared interface for the desktop and web versions. |
+| [TypeScript](https://www.typescriptlang.org/docs/) | 7.0 | Type checking and frontend compilation. |
+| [Vite](https://vite.dev/guide/) | 8.3 | Development server and static frontend build. |
+| [Tailwind CSS](https://tailwindcss.com/docs/) | 4.3 | Interface styling. |
+| [PostCSS](https://postcss.org/) and [Autoprefixer](https://github.com/postcss/autoprefixer) | 8.5 / 10.6 | Generated CSS processing and browser compatibility. |
 
 ### Packaging and automation
 
@@ -56,8 +56,8 @@ dependency lists and exact versions.
 
 Requirements:
 
-- Go 1.26.9+
-- Node.js 20.19+
+- Go 1.27.3+
+- Node.js 24.22+
 - Native Wails dependencies for the target operating system
 
 During the first conversion, the application looks for a bundled or
@@ -77,7 +77,7 @@ On Linux with WebKitGTK 4.1:
 
 ```bash
 cd backend
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 dev -tags webkit2_41
+go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 dev -tags webkit2_41
 ```
 
 The Vite frontend is also available at `http://localhost:5173`.
@@ -277,7 +277,7 @@ Native build:
 
 ```bash
 cd backend
-go run github.com/wailsapp/wails/v2/cmd/wails@v2.12.0 build
+go run github.com/wailsapp/wails/v2/cmd/wails@v2.17.0 build
 ```
 
 ### Windows installer from Linux

@@ -73,7 +73,7 @@ func runYTDLPDownload(ctx context.Context, request ytDLPDownloadRequest, onProgr
 		return "", fmt.Errorf("%w: %v", errYTDLPUnavailable, err)
 	}
 
-	var lastErr error
+	var strategyErrors []error
 	for _, strategy := range ytDLPStrategies() {
 		strategyName := ytDLPStrategyName(strategy)
 		args := append(buildYTDLPBaseArgs(), strategy...)
@@ -100,19 +100,19 @@ func runYTDLPDownload(ctx context.Context, request ytDLPDownloadRequest, onProgr
 			return path, nil
 		}
 		log.Printf("[yt-dlp] download failed strategy=%s error=%v url=%s", strategyName, err, request.URL)
-		lastErr = err
+		strategyErrors = append(strategyErrors, fmt.Errorf("strategy %s: %w", strategyName, err))
 		if !shouldRetryYTDLPStrategy(err) {
 			break
 		}
 	}
-	if lastErr == nil {
-		lastErr = errors.New("yt-dlp download failed")
+	if len(strategyErrors) == 0 {
+		return "", errors.New("yt-dlp download failed")
 	}
-	return "", lastErr
+	return "", errors.Join(strategyErrors...)
 }
 
 func buildYTDLPBaseArgs() []string {
-	args := []string{"--no-update", "--remote-components", "ejs:github"}
+	args := []string{"--ignore-config", "--no-update", "--remote-components", "ejs:github"}
 	if nodePath, err := exec.LookPath("node"); err == nil {
 		args = append(args, "--js-runtimes", "node:"+nodePath)
 	}
@@ -298,6 +298,9 @@ func shouldRetryYTDLPStrategy(err error) bool {
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "cookies") ||
 		strings.Contains(message, "impersonate") ||
+		strings.Contains(message, "http error 403") ||
+		strings.Contains(message, "forbidden") ||
+		strings.Contains(message, "unable to download video data") ||
 		strings.Contains(message, "requested format is not available") ||
 		strings.Contains(message, "sign in to confirm") ||
 		strings.Contains(message, "too many requests")
@@ -330,14 +333,14 @@ func ytDLPVideoSelector(format VideoFormat) string {
 }
 
 func ytDLPGenericVideoSelector(format VideoFormat) string {
-	height := videoHeight(format.Resolution)
+	quality := videoHeight(format.Resolution)
+	dimensionFilter := ytDLPDimensionFilter(format, quality)
 	progressive := "best[vcodec!=none][acodec!=none]"
 	videoFilter := "bestvideo*[vcodec!=none]"
 	preferredAudioFilter := "bestaudio"
-	if height > 0 {
-		filter := "[height<=" + strconv.Itoa(height) + "]"
-		progressive += filter
-		videoFilter += filter
+	if dimensionFilter != "" {
+		progressive += dimensionFilter
+		videoFilter += dimensionFilter
 	}
 	switch format.Extension {
 	case "mp4":
@@ -350,10 +353,21 @@ func ytDLPGenericVideoSelector(format VideoFormat) string {
 		preferredAudioFilter += "[ext=webm]"
 	}
 	withoutExt := "best[vcodec!=none][acodec!=none]"
-	if height > 0 {
-		withoutExt += "[height<=" + strconv.Itoa(height) + "]"
+	if dimensionFilter != "" {
+		withoutExt += dimensionFilter
 	}
 	return progressive + "/" + videoFilter + "+" + preferredAudioFilter + "/" + videoFilter + "+bestaudio/" + withoutExt + "/best[vcodec!=none]"
+}
+
+func ytDLPDimensionFilter(format VideoFormat, quality int) string {
+	if quality <= 0 {
+		return ""
+	}
+	dimension := "height"
+	if format.Width > 0 && format.Height > format.Width {
+		dimension = "width"
+	}
+	return "[" + dimension + "<=" + strconv.Itoa(quality) + "]"
 }
 
 func ytDLPOutputTemplate(dir, baseName string) string {
@@ -369,7 +383,7 @@ func fetchYTDLPInfo(ctx context.Context, url string, extraArgs ...string) (ytDLP
 	if err != nil {
 		return ytDLPInfo{}, fmt.Errorf("%w: %v", errYTDLPUnavailable, err)
 	}
-	var lastErr error
+	var strategyErrors []error
 	for _, strategy := range ytDLPStrategies() {
 		strategyName := ytDLPStrategyName(strategy)
 		args := append(buildYTDLPBaseArgs(), strategy...)
@@ -389,12 +403,12 @@ func fetchYTDLPInfo(ctx context.Context, url string, extraArgs ...string) (ytDLP
 			err = fmt.Errorf("yt-dlp error: %s", detail)
 		}
 		log.Printf("[yt-dlp] list formats failed strategy=%s error=%v url=%s", strategyName, err, url)
-		lastErr = err
+		strategyErrors = append(strategyErrors, fmt.Errorf("strategy %s: %w", strategyName, err))
 	}
-	if lastErr == nil {
-		lastErr = errors.New("yt-dlp metadata failed")
+	if len(strategyErrors) == 0 {
+		return ytDLPInfo{}, errors.New("yt-dlp metadata failed")
 	}
-	return ytDLPInfo{}, lastErr
+	return ytDLPInfo{}, errors.Join(strategyErrors...)
 }
 
 type ytDLPFormat struct {
@@ -406,6 +420,7 @@ type ytDLPFormat struct {
 	ASR            float64 `json:"asr"`
 	TBR            float64 `json:"tbr"`
 	FPS            float64 `json:"fps"`
+	Width          int     `json:"width"`
 	Height         int     `json:"height"`
 	Filesize       float64 `json:"filesize"`
 	FilesizeApprox float64 `json:"filesize_approx"`
@@ -473,17 +488,19 @@ func parseYTDLPInfo(data []byte) (ytDLPInfo, error) {
 	return result, nil
 }
 
-// genericVideoFormats groups yt-dlp video formats by height. The download only
-// uses the resolution and extension, so VideoItag is just a stable index.
+// genericVideoFormats groups yt-dlp video formats by their short edge so
+// portrait and landscape videos use the same familiar quality labels.
+// VideoItag is a stable index for formats that do not have YouTube itags.
 func genericVideoFormats(formats []ytDLPFormat) []VideoFormat {
 	best := map[int]ytDLPFormat{}
 	for _, format := range formats {
 		if format.VideoCodec == "none" || (format.VideoCodec == "" && format.Height == 0) {
 			continue
 		}
-		current, ok := best[format.Height]
+		quality := ytDLPFormatQuality(format)
+		current, ok := best[quality]
 		if !ok || ytDLPFormatSize(format) > ytDLPFormatSize(current) || (ytDLPFormatSize(format) == ytDLPFormatSize(current) && format.TBR > current.TBR) {
-			best[format.Height] = format
+			best[quality] = format
 		}
 	}
 	heights := make([]int, 0, len(best))
@@ -493,29 +510,39 @@ func genericVideoFormats(formats []ytDLPFormat) []VideoFormat {
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
 
 	result := make([]VideoFormat, 0, len(heights))
-	for index, height := range heights {
-		format := best[height]
+	for index, quality := range heights {
+		format := best[quality]
 		videoFormat := VideoFormat{
 			VideoItag:  index + 1,
+			FormatID:   format.FormatID,
 			Container:  "mp4",
 			Extension:  "mp4",
+			Width:      format.Width,
+			Height:     format.Height,
 			FPS:        int(format.FPS),
 			VideoCodec: strings.TrimSpace(format.VideoCodec),
 			Size:       ytDLPFormatSize(format),
 		}
-		if height > 0 {
-			videoFormat.Resolution = strconv.Itoa(height) + "p"
+		if quality > 0 {
+			videoFormat.Resolution = strconv.Itoa(quality) + "p"
 		}
 		if format.AudioCodec != "" && format.AudioCodec != "none" {
 			videoFormat.AudioCodec = format.AudioCodec
 		}
 		videoFormat.Label = videoFormatLabel(videoFormat)
-		if height == 0 {
+		if quality == 0 {
 			videoFormat.Label = "Melhor qualidade (MP4)"
 		}
 		result = append(result, videoFormat)
 	}
 	return result
+}
+
+func ytDLPFormatQuality(format ytDLPFormat) int {
+	if format.Width > 0 && format.Height > 0 && format.Width < format.Height {
+		return format.Width
+	}
+	return format.Height
 }
 
 func ytDLPFormatSize(format ytDLPFormat) int64 {

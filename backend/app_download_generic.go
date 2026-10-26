@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -223,6 +224,15 @@ func (a *App) processGenericVideoDownload(ctx context.Context, item *DownloadIte
 	if !a.setActiveItemStatus(item.ID, StatusDownloading) {
 		return
 	}
+	log.Printf(
+		"[generic-video] selected representative_format_id=%s resolution=%s dimensions=%dx%d container=%s url=%s",
+		format.FormatID,
+		format.Resolution,
+		format.Width,
+		format.Height,
+		format.Extension,
+		item.URL,
+	)
 
 	sourcePath, err := runYTDLPDownload(ctx, ytDLPDownloadRequest{
 		URL:               item.URL,

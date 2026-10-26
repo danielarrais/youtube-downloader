@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -96,6 +97,9 @@ func CheckAndDownloadYTDLP() (string, error) {
 
 func cacheYTDLPPath(path string) string {
 	cachedYTDLPPath = path
+	if version, err := ytDLPVersion(path); err == nil {
+		log.Printf("[yt-dlp] using executable path=%s version=%s", path, version)
+	}
 	return path
 }
 
@@ -246,15 +250,21 @@ func downloadURLWithLimit(ctx context.Context, client *http.Client, url string, 
 }
 
 func validateYTDLP(path string) error {
+	_, err := ytDLPVersion(path)
+	return err
+}
+
+func ytDLPVersion(path string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, path, "--version")
 	output, err := cmd.Output()
 	if err != nil {
-		return err
+		return "", err
 	}
-	if strings.TrimSpace(string(output)) == "" {
-		return errors.New("yt-dlp não retornou versão")
+	version := strings.TrimSpace(string(output))
+	if version == "" {
+		return "", errors.New("yt-dlp não retornou versão")
 	}
-	return nil
+	return version, nil
 }

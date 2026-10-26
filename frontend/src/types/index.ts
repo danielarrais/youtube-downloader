@@ -49,9 +49,12 @@ export interface AudioFormat {
 export interface VideoFormat {
   video_itag: number;
   audio_itag?: number;
+  format_id?: string;
   container: string;
   extension: string;
   resolution: string;
+  width?: number;
+  height?: number;
   fps?: number;
   video_codec?: string;
   audio_codec?: string;

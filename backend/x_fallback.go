@@ -68,7 +68,7 @@ func fetchXFallbackInfo(ctx context.Context, rawURL string) (ytDLPInfo, error) {
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		return ytDLPInfo{}, fmt.Errorf("resposta inválida da consulta de mídia do X: %w", err)
 	}
-	if payload.Code != 0 {
+	if payload.Code != 0 && payload.Code != http.StatusOK {
 		message := strings.TrimSpace(payload.Message)
 		if message == "" {
 			message = "a consulta não retornou mídia"

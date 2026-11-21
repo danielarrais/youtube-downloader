@@ -34,7 +34,7 @@ func TestFetchXFallbackInfo(t *testing.T) {
 			t.Errorf("request path = %q", request.URL.Path)
 		}
 		_, _ = writer.Write([]byte(`{
-			"code": 0,
+			"code": 200,
 			"tweet": {
 				"id": "2124199165802537367",
 				"text": "Post with a video",

@@ -11,7 +11,7 @@ permissions:
 
 env:
   IMAGE_NAME: danielarrais/youtube-mp3-downloader
-  GO_VERSION: "1.27.3"
+  GO_VERSION: "1.27.4"
   NODE_VERSION: "24.22.1"
   NPM_VERSION: "12.2.1"
 

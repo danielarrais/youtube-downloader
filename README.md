@@ -26,7 +26,7 @@ dependency lists and exact versions.
 
 | Project | Version | Purpose |
 | --- | --- | --- |
-| [Go](https://go.dev/) | 1.27.3 | Backend, HTTP API, queue management, persistence, and download processing. |
+| [Go](https://go.dev/) | 1.27.4 | Backend, HTTP API, queue management, persistence, and download processing. |
 | [Wails](https://wails.io/docs/introduction/) | 2.17.0 | Desktop application and bridge between Go and the React frontend. |
 | [yt-dlp](https://github.com/yt-dlp/yt-dlp) | Runtime dependency | Primary downloader for YouTube audio and video streams. |
 | [kkdai/youtube](https://github.com/kkdai/youtube) | 2.10.6 | YouTube video and playlist metadata plus fallback stream retrieval. |
@@ -56,7 +56,7 @@ dependency lists and exact versions.
 
 Requirements:
 
-- Go 1.27.3+
+- Go 1.27.4+
 - Node.js 24.22+
 - Native Wails dependencies for the target operating system
 

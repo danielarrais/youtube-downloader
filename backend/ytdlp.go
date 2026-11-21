@@ -44,6 +44,9 @@ type ytDLPInfo struct {
 	ThumbnailURL string
 	AudioFormats []AudioFormat
 	VideoFormats []VideoFormat
+	// SourceURL is set by a platform fallback when yt-dlp cannot read the
+	// original post, but a direct media URL is available.
+	SourceURL string
 }
 
 func downloadAudioWithYTDLP(ctx context.Context, url string, selected *AudioFormat, outputTemplate string, onProgress func(mediaDownloadProgress)) (string, error) {

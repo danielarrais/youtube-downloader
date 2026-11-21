@@ -16,7 +16,7 @@ env:
   WAILS_VERSION: "v2.17.0"
   NFPM_VERSION: "v2.46.3"
   FFMPEG_BASE_URL: "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest"
-  YTDLP_BASE_URL: "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.21"
+  YTDLP_BASE_URL: "https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26"
 
 jobs:
   validate:

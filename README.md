@@ -73,6 +73,10 @@ downloads a checksum-verified copy into `~/.youtube-mp3-downloader-bin/` as a
 fallback. If `yt-dlp` is unavailable, supported operations fall back to the Go
 stream downloader backed by `kkdai/youtube`.
 
+For X posts where the platform hides the video from `yt-dlp` (including some
+age-restricted posts), the app requests the public post metadata from FxTwitter
+and downloads the returned `video.twimg.com` MP4 URL.
+
 On Linux with WebKitGTK 4.1:
 
 ```bash

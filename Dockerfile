@@ -54,7 +54,7 @@ RUN case "$TARGETARCH" in \
 FROM --platform=$BUILDPLATFORM debian:bookworm-slim AS ytdlp
 
 ARG TARGETARCH
-ARG YTDLP_VERSION=2026.10.21
+ARG YTDLP_VERSION=2026.10.26
 ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}
 
 RUN apt-get update \

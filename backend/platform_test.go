@@ -93,6 +93,15 @@ func TestYTDLPGenericVideoSelectorRequiresVideo(t *testing.T) {
 	}
 }
 
+func TestGenericSourceURL(t *testing.T) {
+	if got := genericSourceURL("https://x.com/user/status/123", ytDLPInfo{}); got != "https://x.com/user/status/123" {
+		t.Fatalf("genericSourceURL without fallback = %q", got)
+	}
+	if got := genericSourceURL("https://x.com/user/status/123", ytDLPInfo{SourceURL: "https://video.twimg.com/video.mp4"}); got != "https://video.twimg.com/video.mp4" {
+		t.Fatalf("genericSourceURL with fallback = %q", got)
+	}
+}
+
 func TestParseYTDLPInfoUsesShortEdgeForPortraitVideo(t *testing.T) {
 	data := []byte(`{
 		"id": "2114640210013163520",

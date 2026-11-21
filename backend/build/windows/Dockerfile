@@ -8,7 +8,7 @@ RUN npm install --global npm@12.2.1
 
 ARG WAILS_VERSION=v2.17.0
 ARG FFMPEG_URL=https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
-ARG YTDLP_VERSION=2026.10.21
+ARG YTDLP_VERSION=2026.10.26
 ARG YTDLP_BASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}
 
 RUN apt-get update && \

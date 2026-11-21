@@ -41,7 +41,13 @@ func genericDownloadArgs() []string {
 func fetchGenericInfo(ctx context.Context, url string) (ytDLPInfo, error) {
 	info, err := fetchYTDLPInfo(ctx, url, genericInfoArgs()...)
 	if err != nil {
-		return ytDLPInfo{}, err
+		if detectPlatform(url) != PlatformX || !shouldUseXFallback(err) {
+			return ytDLPInfo{}, err
+		}
+		info, err = fetchXFallbackInfo(ctx, url)
+		if err != nil {
+			return ytDLPInfo{}, err
+		}
 	}
 	if len(info.AudioFormats) == 0 {
 		info.AudioFormats = []AudioFormat{genericBestAudioFormat}
@@ -141,12 +147,19 @@ func (a *App) processGenericAudioDownload(ctx context.Context, item *DownloadIte
 		return
 	}
 
+	sourceURL := genericSourceURL(item.URL, info)
 	selector := "bestaudio/best"
+	if info.SourceURL != "" {
+		selector = "b"
+	}
 	if item.AudioFormat != nil && item.AudioFormat.FormatID != "" {
 		selector = item.AudioFormat.FormatID + "/bestaudio/best"
+		if info.SourceURL != "" {
+			selector = "b"
+		}
 	}
 	sourcePath, err := runYTDLPDownload(ctx, ytDLPDownloadRequest{
-		URL:            item.URL,
+		URL:            sourceURL,
 		FormatSelector: selector,
 		OutputTemplate: ytDLPOutputTemplate(a.cacheDir, item.ID+"-audio"),
 		ExtraArgs:      genericDownloadArgs(),
@@ -234,9 +247,14 @@ func (a *App) processGenericVideoDownload(ctx context.Context, item *DownloadIte
 		item.URL,
 	)
 
+	sourceURL := genericSourceURL(item.URL, info)
+	selector := ytDLPGenericVideoSelector(format)
+	if info.SourceURL != "" {
+		selector = "b"
+	}
 	sourcePath, err := runYTDLPDownload(ctx, ytDLPDownloadRequest{
-		URL:               item.URL,
-		FormatSelector:    ytDLPGenericVideoSelector(format),
+		URL:               sourceURL,
+		FormatSelector:    selector,
 		OutputTemplate:    ytDLPOutputTemplate(a.cacheDir, item.ID+"-video"),
 		MergeOutputFormat: format.Extension,
 		ExtraArgs:         genericDownloadArgs(),
@@ -258,6 +276,13 @@ func (a *App) processGenericVideoDownload(ctx context.Context, item *DownloadIte
 		return
 	}
 	a.completeGenericDownload(item, outputPath)
+}
+
+func genericSourceURL(originalURL string, info ytDLPInfo) string {
+	if info.SourceURL != "" {
+		return info.SourceURL
+	}
+	return originalURL
 }
 
 // prepareGenericOutput handles an already existing output file and reports
